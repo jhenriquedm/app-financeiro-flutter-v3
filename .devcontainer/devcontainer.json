@@ -1,7 +1,11 @@
 {
   "name": "Flutter Dev Environment",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-  "postCreateCommand": "git clone https://github.com/flutter/flutter.git -b stable /usr/local/flutter && echo 'export PATH=/usr/local/flutter/bin:$PATH' >> ~/.bashrc",
+
+  "postCreateCommand": "git clone https://github.com/flutter/flutter.git -b stable /home/vscode/flutter && echo 'export PATH=/home/vscode/flutter/bin:$PATH' >> ~/.bashrc",
+
+  "postStartCommand": "export PATH=/home/vscode/flutter/bin:$PATH",
+
   "customizations": {
     "vscode": {
       "extensions": [
