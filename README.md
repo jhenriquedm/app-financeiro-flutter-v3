@@ -3,122 +3,54 @@
 Aplicativo de controle financeiro desenvolvido em **Flutter**, com foco em organização de dados, visualização de transações e aplicação do padrão arquitetural **MVVM (Model-View-ViewModel)**.
 
 ---
+🚀 Como executar o projeto (PASSO A PASSO COMPLETO)
 
-# 📱 Funcionalidades
+🌐 Executar pelo GitHub Codespaces
+👉 Não precisa instalar nada no computador.
 
-O aplicativo é composto por três telas principais:
+🔹 Passo 1: Criar o Codespace
+Clique no botão verde "Code"
+Vá até a aba "Codespaces"
+Clique em "Create codespace on main"
+⏳ Aguarde o ambiente abrir (pode levar alguns segundos)
 
-## 🔐 Tela de Login/Cadastro
+🔹 Passo 2: Abrir o terminal
+No Codespace, vá em: Terminal 
 
-* Permite entrada de usuário (interface simulada)
-* Alternância entre **Login** e **Cadastro**
-* Layout responsivo e centralizado
+🔹 Passo 3: Instalar o Flutter
+No terminal, execute:
+git clone https://github.com/flutter/flutter.git -b stable ~/flutter 
+Depois:
+echo 'export PATH=$HOME/flutter/bin:$PATH' >> ~/.bashrc
 
----
 
-## 📊 Dashboard (Tela Principal)
+🔹 Passo 4: Verificar instalação
 
-* Exibe:
 
-  * Saldo atual
-  * Total de receitas
-  * Total de despesas
-* Lista de transações recentes
-* Indicadores visuais por categoria
-* Botão para adicionar transação (simulado)
-* Navegação para tela de análise
+flutter doctor
+✔ Se aparecer [✓] Flutter, está correto
 
----
 
-## 📈 Tela de Análise
+🔹 Passo 5: Habilitar Web
+flutter config --enable-web
 
-* Visão detalhada dos dados financeiros
-* Exibe:
 
-  * Saldo atual
-  * Receitas e despesas
-* Gráfico simples por categoria (barra de progresso)
-* Lista analítica de gastos
+🔹 Passo 6: Acessar o projeto
+cd app
 
----
 
-# 🏗️ Arquitetura
-
-O projeto segue o padrão **MVVM**:
-
-```
-lib/
- ├── models/        → Estrutura dos dados
- ├── viewmodels/    → Lógica e regras de negócio
- ├── views/         → Interface do usuário
- └── utils/         → Utilitários (cores, etc.)
-```
-
----
-
-# 🚀 Como Executar o Projeto
-
-## 📌 Pré-requisitos
-
-Antes de executar o projeto, é necessário ter instalado:
-
-* Flutter SDK
-* Git
-* Navegador (Google Chrome recomendado)
-
----
-
-## 🔽 1. Clonar o repositório
-
-Abra o terminal e execute:
-
-```
-git clone https://github.com/jhenriquedm/app-financeiro-flutter.git
-```
-
----
-
-## 📁 2. Acessar a pasta do projeto
-
-```
-cd app-financeiro-flutter/app
-```
-
----
-
-## 📦 3. Instalar dependências
-
-```
+🔹 Passo 8: Instalar dependências
 flutter pub get
-```
 
----
 
-## ▶️ 4. Executar o projeto
-
-### Opção 1 — Web (RECOMENDADO)
-
-```
-flutter run -d chrome
-```
-
-Caso não tenha Chrome configurado:
-
-```
+🔹 Passo 9: Rodar o projeto
 flutter run -d web-server
-```
 
-E acesse o link exibido no terminal (ex: [http://localhost:xxxx](http://localhost:xxxx))
 
----
-
-## 🔄 5. Comandos úteis durante execução
-
-```
-r  → Atualiza a tela (Hot Reload)
-R  → Reinicia o app
-q  → Encerra execução
-```
+🔹 Passo 9: Abrir o sistema
+Vá na aba "Ports"
+Procure o link que contenha a porta indicada no terminal
+Botão direito do mouse (Clique em "Open in Browser" ou Abrir no navegador)
 
 ---
 
