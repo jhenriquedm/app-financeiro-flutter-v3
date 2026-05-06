@@ -15,8 +15,9 @@ Aplicativo de controle financeiro desenvolvido em **Flutter**, com foco em organ
     Vá até a aba "Codespaces"
 
     Clique em "Create codespace on main"
+    
+⏳ Aguarde o ambiente abrir (Pode levar alguns monutos)
 
-⏳ Aguarde o ambiente abrir (pode levar alguns segundos)
 ---
 🔹 Passo 2: Abrir o terminal
 
