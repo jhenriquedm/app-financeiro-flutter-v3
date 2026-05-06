@@ -1,0 +1,13 @@
+{
+  "name": "Flutter Dev Environment",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "postCreateCommand": "git clone https://github.com/flutter/flutter.git -b stable /usr/local/flutter && echo 'export PATH=/usr/local/flutter/bin:$PATH' >> ~/.bashrc",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Dart-Code.flutter",
+        "Dart-Code.dart-code"
+      ]
+    }
+  }
+}
