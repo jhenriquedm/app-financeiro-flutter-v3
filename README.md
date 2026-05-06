@@ -62,16 +62,14 @@ Aplicativo de controle financeiro desenvolvido em **Flutter**, com foco em organ
     Procure o link que contenha a porta indicada no terminal
     Botão direito do mouse (Clique em "Open in Browser" ou Abrir no navegador)
 ---
-
-# 📌 Observações Importantes
+📌 Observações
 
 * O projeto utiliza dados simulados (não possui backend)
 * A funcionalidade de adicionar transação está em desenvolvimento (simulada)
 * O foco do projeto é a **interface e arquitetura (MVVM)**
 
 ---
-
-# 📷 Execução Esperada
+📷 Execução esperada
 
 Após rodar o projeto, o usuário poderá:
 
