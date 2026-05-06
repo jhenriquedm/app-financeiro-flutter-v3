@@ -9,9 +9,13 @@ Aplicativo de controle financeiro desenvolvido em **Flutter**, com foco em organ
 👉 Não precisa instalar nada no computador.
 
 🔹 Passo 1: Criar o Codespace
+
 Clique no botão verde "Code"
+
 Vá até a aba "Codespaces"
+
 Clique em "Create codespace on main"
+
 ⏳ Aguarde o ambiente abrir (pode levar alguns segundos)
 
 🔹 Passo 2: Abrir o terminal
@@ -22,7 +26,6 @@ No terminal, execute:
 git clone https://github.com/flutter/flutter.git -b stable ~/flutter 
 Depois:
 echo 'export PATH=$HOME/flutter/bin:$PATH' >> ~/.bashrc
-
 
 🔹 Passo 4: Verificar instalação
 
