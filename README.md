@@ -32,6 +32,10 @@ Aplicativo de controle financeiro desenvolvido em **Flutter**, com foco em organ
     Depois:
 
     echo 'export PATH=$HOME/flutter/bin:$PATH' >> ~/.bashrc
+
+    Em seguida:
+
+    source ~/.bashrc
 ---
 🔹 Passo 4: Verificar instalação
 
