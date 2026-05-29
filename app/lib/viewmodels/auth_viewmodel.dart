@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../data/user_dao.dart';
+import '../data/repositories/auth_repository.dart';
 import '../models/user_model.dart';
 
 class AuthViewModel extends ChangeNotifier {
-  final UserDao _userDao = UserDao();
+  final AuthRepository _authRepository;
+
+  AuthViewModel({
+    required AuthRepository authRepository,
+  }) : _authRepository = authRepository;
 
   UserModel? _currentUser;
   bool _isLoading = false;
@@ -22,9 +26,9 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
 
-    final user = await _userDao.login(
-      email: email.trim(),
-      password: password.trim(),
+    final user = await _authRepository.login(
+      email: email,
+      password: password,
     );
 
     if (user == null) {
@@ -46,7 +50,7 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
 
-    final existingUser = await _userDao.findByEmail(email.trim());
+    final existingUser = await _authRepository.findByEmail(email);
 
     if (existingUser != null) {
       _errorMessage = 'Este e-mail já está cadastrado';
@@ -60,7 +64,7 @@ class AuthViewModel extends ChangeNotifier {
       password: password.trim(),
     );
 
-    await _userDao.insertUser(user);
+    await _authRepository.register(user);
 
     _setLoading(false);
     return true;
