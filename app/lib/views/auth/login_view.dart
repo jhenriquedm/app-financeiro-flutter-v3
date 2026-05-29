@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../viewmodels/auth_viewmodel.dart';
-import '../../viewmodels/dashboard_viewmodel.dart';
+import '../../providers/app_providers.dart';
 import '../../widgets/app_screen_container.dart';
 import '../dashboard/dashboard_view.dart';
 import 'register_view.dart';
 
-class LoginView extends StatefulWidget {
+class LoginView extends ConsumerStatefulWidget {
   const LoginView({super.key});
 
   @override
-  State<LoginView> createState() => _LoginViewState();
+  ConsumerState<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginViewState extends State<LoginView> {
+class _LoginViewState extends ConsumerState<LoginView> {
   final _formKey = GlobalKey<FormState>();
 
   final _emailController = TextEditingController();
@@ -63,7 +62,7 @@ class _LoginViewState extends State<LoginView> {
 
     if (!_formKey.currentState!.validate()) return;
 
-    final authVm = context.read<AuthViewModel>();
+    final authVm = ref.read(authProvider);
 
     final success = await authVm.login(
       email: _emailController.text,
@@ -73,7 +72,7 @@ class _LoginViewState extends State<LoginView> {
     if (!mounted) return;
 
     if (success) {
-      await context.read<DashboardViewModel>().loadTransactions();
+      await ref.read(dashboardProvider).loadTransactions();
 
       if (!mounted) return;
 
@@ -109,7 +108,7 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    final authVm = context.watch<AuthViewModel>();
+    final authVm = ref.watch(authProvider);
 
     return Scaffold(
       body: Container(
@@ -140,9 +139,7 @@ class _LoginViewState extends State<LoginView> {
                       size: 60,
                       color: Colors.blue,
                     ),
-
                     const SizedBox(height: 10),
-
                     const Text(
                       'Money Wise',
                       style: TextStyle(
@@ -150,9 +147,7 @@ class _LoginViewState extends State<LoginView> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
                     Text(
                       'Seu aplicativo de controle financeiro',
                       textAlign: TextAlign.center,
@@ -161,13 +156,9 @@ class _LoginViewState extends State<LoginView> {
                         fontSize: 13,
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
                     _buildFinancialCard(),
-
                     const SizedBox(height: 18),
-
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -196,9 +187,7 @@ class _LoginViewState extends State<LoginView> {
                         return null;
                       },
                     ),
-
                     const SizedBox(height: 14),
-
                     TextFormField(
                       controller: _passwordController,
                       obscureText: !_showPassword,
@@ -242,14 +231,11 @@ class _LoginViewState extends State<LoginView> {
                         return null;
                       },
                     ),
-
                     if (_loginErrorMessage != null) ...[
                       const SizedBox(height: 10),
                       _buildLoginErrorMessage(_loginErrorMessage!),
                     ],
-
                     const SizedBox(height: 18),
-
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -279,9 +265,7 @@ class _LoginViewState extends State<LoginView> {
                               ),
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     TextButton(
                       onPressed: _goToRegister,
                       child: const Text(
@@ -318,27 +302,21 @@ class _LoginViewState extends State<LoginView> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 12),
-
           _buildFeatureItem(
             Icons.attach_money,
             Colors.green,
             'Receitas',
             'Gerencie seus ganhos',
           ),
-
           const SizedBox(height: 8),
-
           _buildFeatureItem(
             Icons.trending_down,
             Colors.red,
             'Despesas',
             'Controle seus gastos',
           ),
-
           const SizedBox(height: 8),
-
           _buildFeatureItem(
             Icons.bar_chart,
             Colors.blue,
@@ -377,9 +355,7 @@ class _LoginViewState extends State<LoginView> {
               size: 21,
             ),
           ),
-
           const SizedBox(width: 10),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
