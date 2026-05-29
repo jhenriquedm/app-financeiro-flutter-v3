@@ -3,29 +3,29 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../viewmodels/auth_viewmodel.dart';
-import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../widgets/app_screen_container.dart';
-import '../dashboard/dashboard_view.dart';
-import 'register_view.dart';
 
-class LoginView extends StatefulWidget {
-  const LoginView({super.key});
+class RegisterView extends StatefulWidget {
+  const RegisterView({super.key});
 
   @override
-  State<LoginView> createState() => _LoginViewState();
+  State<RegisterView> createState() => _RegisterViewState();
 }
 
-class _LoginViewState extends State<LoginView> {
+class _RegisterViewState extends State<RegisterView> {
   final _formKey = GlobalKey<FormState>();
 
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _showPassword = false;
-  String? _loginErrorMessage;
+  String? _registerMessage;
+  bool _isErrorMessage = false;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -36,36 +36,34 @@ class _LoginViewState extends State<LoginView> {
   }
 
   void _clearFields() {
+    _nameController.clear();
     _emailController.clear();
     _passwordController.clear();
 
     setState(() {
-      _loginErrorMessage = null;
+      _registerMessage = null;
       _showPassword = false;
+      _isErrorMessage = false;
     });
 
     _formKey.currentState?.reset();
   }
 
-  void _showTemporaryLoginError(String message) {
-    setState(() {
-      _loginErrorMessage = message;
-    });
-
-    Future.delayed(const Duration(seconds: 5), () {
-      if (!mounted) return;
-      setState(() => _loginErrorMessage = null);
-    });
+  void _clearRegisterMessage() {
+    if (_registerMessage != null) {
+      setState(() => _registerMessage = null);
+    }
   }
 
-  Future<void> _login() async {
-    setState(() => _loginErrorMessage = null);
+  Future<void> _register() async {
+    setState(() => _registerMessage = null);
 
     if (!_formKey.currentState!.validate()) return;
 
     final authVm = context.read<AuthViewModel>();
 
-    final success = await authVm.login(
+    final success = await authVm.register(
+      name: _nameController.text,
       email: _emailController.text,
       password: _passwordController.text,
     );
@@ -73,38 +71,33 @@ class _LoginViewState extends State<LoginView> {
     if (!mounted) return;
 
     if (success) {
-      await context.read<DashboardViewModel>().loadTransactions();
+      setState(() {
+        _registerMessage = 'Cadastro realizado com sucesso';
+        _isErrorMessage = false;
+      });
+
+      await Future.delayed(const Duration(seconds: 2));
 
       if (!mounted) return;
 
       _clearFields();
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const DashboardView(),
-        ),
-      );
+      Navigator.pop(context);
     } else {
-      _showTemporaryLoginError(
-        authVm.errorMessage ?? 'E-mail ou senha inválidos',
-      );
+      setState(() {
+        _registerMessage = authVm.errorMessage ?? 'Erro ao cadastrar usuário';
+        _isErrorMessage = true;
+      });
+
+      Future.delayed(const Duration(seconds: 5), () {
+        if (!mounted) return;
+        setState(() => _registerMessage = null);
+      });
     }
   }
 
-  Future<void> _goToRegister() async {
+  void _backToLogin() {
     _clearFields();
-
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const RegisterView(),
-      ),
-    );
-
-    if (!mounted) return;
-
-    _clearFields();
+    Navigator.pop(context);
   }
 
   @override
@@ -136,15 +129,15 @@ class _LoginViewState extends State<LoginView> {
                 child: Column(
                   children: [
                     const Icon(
-                      Icons.account_balance_wallet,
-                      size: 60,
+                      Icons.person_add_alt_1,
+                      size: 58,
                       color: Colors.blue,
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
 
                     const Text(
-                      'Money Wise',
+                      'Criar Conta',
                       style: TextStyle(
                         fontSize: 25,
                         fontWeight: FontWeight.bold,
@@ -154,7 +147,7 @@ class _LoginViewState extends State<LoginView> {
                     const SizedBox(height: 6),
 
                     Text(
-                      'Seu aplicativo de controle financeiro',
+                      'Cadastre-se para organizar suas finanças',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.grey[600],
@@ -162,21 +155,50 @@ class _LoginViewState extends State<LoginView> {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
-
-                    _buildFinancialCard(),
-
                     const SizedBox(height: 18),
+
+                    _buildBenefitsCard(),
+
+                    const SizedBox(height: 28),
+
+                    TextFormField(
+                      controller: _nameController,
+                      maxLength: 40,
+                      onChanged: (_) => _clearRegisterMessage(),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-ZÀ-ÿ\s]'),
+                        ),
+                        LengthLimitingTextInputFormatter(40),
+                      ],
+                      decoration: InputDecoration(
+                        labelText: 'Nome',
+                        counterText: '',
+                        prefixIcon: const Icon(Icons.person),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Informe o nome';
+                        }
+
+                        if (value.trim().length < 3) {
+                          return 'Nome deve ter pelo menos 3 caracteres';
+                        }
+
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 12),
 
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
-                      onChanged: (_) {
-                        if (_loginErrorMessage != null) {
-                          setState(() => _loginErrorMessage = null);
-                        }
-                      },
+                      onChanged: (_) => _clearRegisterMessage(),
                       decoration: InputDecoration(
                         labelText: 'E-mail',
                         prefixIcon: const Icon(Icons.email),
@@ -197,17 +219,13 @@ class _LoginViewState extends State<LoginView> {
                       },
                     ),
 
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
 
                     TextFormField(
                       controller: _passwordController,
                       obscureText: !_showPassword,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
-                      onChanged: (_) {
-                        if (_loginErrorMessage != null) {
-                          setState(() => _loginErrorMessage = null);
-                        }
-                      },
+                      onChanged: (_) => _clearRegisterMessage(),
                       inputFormatters: [
                         LengthLimitingTextInputFormatter(20),
                       ],
@@ -243,12 +261,12 @@ class _LoginViewState extends State<LoginView> {
                       },
                     ),
 
-                    if (_loginErrorMessage != null) ...[
+                    if (_registerMessage != null) ...[
                       const SizedBox(height: 10),
-                      _buildLoginErrorMessage(_loginErrorMessage!),
+                      _buildRegisterMessage(_registerMessage!),
                     ],
 
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
 
                     SizedBox(
                       width: double.infinity,
@@ -260,7 +278,7 @@ class _LoginViewState extends State<LoginView> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        onPressed: authVm.isLoading ? null : _login,
+                        onPressed: authVm.isLoading ? null : _register,
                         child: authVm.isLoading
                             ? const SizedBox(
                                 width: 22,
@@ -271,7 +289,7 @@ class _LoginViewState extends State<LoginView> {
                                 ),
                               )
                             : const Text(
-                                'Entrar',
+                                'Cadastrar',
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.white,
@@ -283,9 +301,9 @@ class _LoginViewState extends State<LoginView> {
                     const SizedBox(height: 8),
 
                     TextButton(
-                      onPressed: _goToRegister,
+                      onPressed: _backToLogin,
                       child: const Text(
-                        'Não possui conta? Cadastre-se',
+                        'Já possui conta? Faça login',
                       ),
                     ),
                   ],
@@ -298,7 +316,7 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
-  Widget _buildFinancialCard() {
+  Widget _buildBenefitsCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -312,123 +330,89 @@ class _LoginViewState extends State<LoginView> {
       child: Column(
         children: [
           const Text(
-            'Controle Financeiro',
+            'Comece sua organização financeira',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
           ),
 
           const SizedBox(height: 12),
 
-          _buildFeatureItem(
-            Icons.attach_money,
-            Colors.green,
-            'Receitas',
-            'Gerencie seus ganhos',
+          _buildBenefitItem(
+            Icons.check_circle,
+            'Controle receitas e despesas',
           ),
 
           const SizedBox(height: 8),
 
-          _buildFeatureItem(
-            Icons.trending_down,
-            Colors.red,
-            'Despesas',
-            'Controle seus gastos',
+          _buildBenefitItem(
+            Icons.check_circle,
+            'Saldo atualizado automaticamente',
           ),
 
           const SizedBox(height: 8),
 
-          _buildFeatureItem(
-            Icons.bar_chart,
-            Colors.blue,
-            'Relatórios',
-            'Acompanhe análises financeiras',
+          _buildBenefitItem(
+            Icons.check_circle,
+            'Relatórios financeiros',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFeatureItem(
+  Widget _buildBenefitItem(
     IconData icon,
-    Color color,
-    String title,
-    String subtitle,
+    String text,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 21,
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 19,
+          color: Colors.green,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
             ),
           ),
-
-          const SizedBox(width: 10),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildLoginErrorMessage(String message) {
+  Widget _buildRegisterMessage(String message) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.red[50],
+        color: _isErrorMessage ? Colors.red[50] : Colors.green[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red),
+        border: Border.all(
+          color: _isErrorMessage ? Colors.red : Colors.green,
+        ),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.error_outline,
-            color: Colors.red,
+          Icon(
+            _isErrorMessage ? Icons.error_outline : Icons.check_circle_outline,
+            color: _isErrorMessage ? Colors.red : Colors.green,
             size: 20,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: Colors.red,
+              style: TextStyle(
+                color: _isErrorMessage ? Colors.red : Colors.green,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),

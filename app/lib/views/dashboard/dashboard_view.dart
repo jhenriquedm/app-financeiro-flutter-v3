@@ -1,9 +1,54 @@
 import 'package:flutter/material.dart';
-import '../../utils/app_colors.dart';
-import '../../viewmodels/dashboard_viewmodel.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
 import '../../models/transaction_model.dart';
-import '../auth/login_view.dart';
+import '../../utils/app_colors.dart';
+import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/dashboard_viewmodel.dart';
+import '../../widgets/app_screen_container.dart';
 import '../analysis/analysis_view.dart';
+import '../auth/login_view.dart';
+
+String _formatCurrencyBr(double value) {
+  return NumberFormat.currency(
+    locale: 'pt_BR',
+    symbol: 'R\$',
+    decimalDigits: 2,
+  ).format(value);
+}
+
+class _BrazilianCurrencyInputFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat.currency(
+    locale: 'pt_BR',
+    symbol: 'R\$',
+    decimalDigits: 2,
+  );
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digitsOnly.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    final value = (int.tryParse(digitsOnly) ?? 0) / 100;
+    final newText = _formatter.format(value);
+
+    return TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
+    );
+  }
+}
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -13,266 +58,319 @@ class DashboardView extends StatefulWidget {
 }
 
 class _DashboardViewState extends State<DashboardView> {
-  bool showMessage = false;
+  bool _showTransactionForm = false;
+  TransactionModel? _editingTransaction;
+
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      context.read<DashboardViewModel>().loadTransactions();
+    });
+  }
+
+  Future<void> _logout() async {
+    context.read<AuthViewModel>().logout();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LoginView(),
+      ),
+    );
+  }
+
+  void _openTransactionForm({TransactionModel? transaction}) {
+    setState(() {
+      _editingTransaction = transaction;
+      _showTransactionForm = true;
+    });
+  }
+
+  void _closeTransactionForm() {
+    setState(() {
+      _editingTransaction = null;
+      _showTransactionForm = false;
+    });
+  }
+
+  Future<void> _confirmDelete(TransactionModel transaction) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Excluir transação'),
+          content: Text(
+            'Deseja realmente excluir "${transaction.title}"?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text(
+                'Excluir',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true && transaction.id != null) {
+      await context
+          .read<DashboardViewModel>()
+          .deleteTransaction(transaction.id!);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final vm = DashboardViewModel();
+    final authVm = context.watch<AuthViewModel>();
+    final dashboardVm = context.watch<DashboardViewModel>();
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
             colors: AppColors.backgroundGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: SingleChildScrollView(
+        child: AppScreenContainer(
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 18,
+                ),
                 child: Column(
                   children: [
-                    // 🔝 TOPO
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Olá, usuário 👋',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.logout),
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LoginView(),
-                              ),
-                            );
-                          },
-                        )
-                      ],
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    const Text(
-                      'Gerenciamento de transações\nDashboard',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // 💰 BLOCO ORGANIZADO
-                    Column(
-                      children: [
-                        // SALDO CENTRAL
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Column(
-                            children: [
-                              const Text('Saldo'),
-                              const SizedBox(height: 5),
-                              Text(
-                                'R\$ ${vm.balance.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        // RECEITAS + DESPESAS
-                        Row(
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
                           children: [
-                            Expanded(
-                              child: _buildSummaryCard(
-                                'Receitas',
-                                vm.totalIncome,
-                                Colors.green,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Olá, ${authVm.currentUser?.name ?? 'usuário'}',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Sair',
+                                  onPressed: _logout,
+                                  icon: const Icon(Icons.logout),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Gerenciamento de transações',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _buildSummaryCard(
-                                'Despesas',
-                                vm.totalExpense,
-                                Colors.red,
-                              ),
+                            const SizedBox(height: 14),
+                            _buildBalanceCard(dashboardVm),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildSummaryCard(
+                                    'Receitas',
+                                    dashboardVm.totalIncome,
+                                    Colors.green,
+                                    Icons.arrow_upward,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _buildSummaryCard(
+                                    'Despesas',
+                                    dashboardVm.totalExpense,
+                                    Colors.red,
+                                    Icons.arrow_downward,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // 📊 GRÁFICO
-                    _buildChart(vm),
-
-                    const SizedBox(height: 20),
-
-                    // 📋 LISTA
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        children: vm.transactions.map((t) {
-                          return ListTile(
-                            leading: Icon(
-                              t.type == TransactionType.income
-                                  ? Icons.arrow_upward
-                                  : Icons.arrow_downward,
-                              color: t.type == TransactionType.income
-                                  ? Colors.green
-                                  : Colors.red,
+                            const SizedBox(height: 14),
+                            _buildChart(dashboardVm),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    'Transações recentes',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Adicionar',
+                                  onPressed: () {
+                                    _openTransactionForm();
+                                  },
+                                  icon: const Icon(
+                                    Icons.add_circle,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
                             ),
-                            title: Text(t.title),
-                            subtitle: Text(t.category),
-                            trailing: Text(
-                              '${t.type == TransactionType.income ? '+' : '-'} R\$ ${t.amount}',
+                            SizedBox(
+                              height: 230,
+                              child: dashboardVm.isLoading
+                                  ? const Center(
+                                      child: CircularProgressIndicator(),
+                                    )
+                                  : _buildTransactionList(dashboardVm),
                             ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // ⚠️ MENSAGEM INTERNA
-                    if (showMessage)
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange[100],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: const [
-                            Icon(Icons.info, color: Colors.orange),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text('Funcionalidade em desenvolvimento'),
-                            ),
+                            const SizedBox(height: 14),
                           ],
                         ),
                       ),
-
-                    // ➕ BOTÃO ADICIONAR TRANSAÇÃO
+                    ),
                     SizedBox(
                       width: double.infinity,
+                      height: 48,
                       child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            showMessage = true;
-                          });
-
-                          Future.delayed(const Duration(seconds: 3), () {
-                            if (mounted) {
-                              setState(() {
-                                showMessage = false;
-                              });
-                            }
-                          });
-                        },
-                        icon: const Icon(Icons.add),
-                        label: const Text('Adicionar Transação'),
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // 🔘 BOTÃO VER ANÁLISE
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AnalysisView(),
+                              builder: (_) => const AnalysisView(),
                             ),
                           );
                         },
-                        child: const Text('Ver Análise'),
+                        icon: const Icon(
+                          Icons.analytics,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          'Ver Análise',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
+              if (_showTransactionForm)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withOpacity(0.35),
+                    padding: const EdgeInsets.all(18),
+                    child: Center(
+                      child: _TransactionFormCard(
+                        transaction: _editingTransaction,
+                        onClose: _closeTransactionForm,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSummaryCard(String title, double value, Color color) {
+  Widget _buildBalanceCard(DashboardViewModel vm) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.grey.shade300,
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center, // 👈 corrigido
         children: [
-          Text(title),
-          const SizedBox(height: 5),
+          const Text(
+            'Saldo Atual',
+            style: TextStyle(fontSize: 13),
+          ),
+          const SizedBox(height: 6),
           Text(
-            'R\$ ${value.toStringAsFixed(2)}',
+            _formatCurrencyBr(vm.balance),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: vm.balance >= 0 ? Colors.green : Colors.red,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(
+    String title,
+    double value,
+    Color color,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.grey.shade300,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 22,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _formatCurrencyBr(value),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,
+              fontSize: 13,
             ),
           ),
         ],
@@ -283,27 +381,442 @@ class _DashboardViewState extends State<DashboardView> {
   Widget _buildChart(DashboardViewModel vm) {
     final data = vm.expensesByCategory;
 
+    if (data.isEmpty || vm.totalExpense <= 0) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: const Text(
+          'Nenhuma despesa cadastrada para análise.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12),
+        ),
+      );
+    }
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      constraints: const BoxConstraints(
+        maxHeight: 220,
+      ),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade300),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: data.entries.map((entry) {
-          final percentage = entry.value / vm.totalExpense;
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: data.entries.map((entry) {
+            final percentage = entry.value / vm.totalExpense;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(entry.key),
-              const SizedBox(height: 5),
-              LinearProgressIndicator(value: percentage),
-              const SizedBox(height: 10),
-            ],
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${entry.key} (${(percentage * 100).toStringAsFixed(1)}%)',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  LinearProgressIndicator(
+                    value: percentage,
+                    minHeight: 8,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTransactionList(DashboardViewModel vm) {
+    if (vm.transactions.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: const Center(
+          child: Text(
+            'Nenhuma transação cadastrada.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        itemCount: vm.transactions.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final transaction = vm.transactions[index];
+          final isIncome = transaction.type == TransactionType.income;
+
+          return ListTile(
+            dense: true,
+            leading: CircleAvatar(
+              radius: 17,
+              backgroundColor: isIncome ? Colors.green[50] : Colors.red[50],
+              child: Icon(
+                isIncome ? Icons.arrow_upward : Icons.arrow_downward,
+                color: isIncome ? Colors.green : Colors.red,
+                size: 18,
+              ),
+            ),
+            title: Text(
+              transaction.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              transaction.category,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'edit') {
+                  _openTransactionForm(transaction: transaction);
+                }
+
+                if (value == 'delete') {
+                  _confirmDelete(transaction);
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Text('Editar'),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Text('Excluir'),
+                ),
+              ],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${isIncome ? '+' : '-'} ${_formatCurrencyBr(transaction.amount)}',
+                    style: TextStyle(
+                      color: isIncome ? Colors.green : Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.more_vert,
+                    size: 18,
+                  ),
+                ],
+              ),
+            ),
           );
-        }).toList(),
+        },
+      ),
+    );
+  }
+}
+
+class _TransactionFormCard extends StatefulWidget {
+  const _TransactionFormCard({
+    required this.transaction,
+    required this.onClose,
+  });
+
+  final TransactionModel? transaction;
+  final VoidCallback onClose;
+
+  @override
+  State<_TransactionFormCard> createState() => _TransactionFormCardState();
+}
+
+class _TransactionFormCardState extends State<_TransactionFormCard> {
+  final _formKey = GlobalKey<FormState>();
+
+  late final TextEditingController _titleController;
+  late final TextEditingController _amountController;
+
+  late String _category;
+  late TransactionType _selectedType;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _titleController = TextEditingController(
+      text: widget.transaction?.title ?? '',
+    );
+
+    _amountController = TextEditingController(
+      text: widget.transaction != null
+          ? _formatCurrencyBr(widget.transaction!.amount)
+          : '',
+    );
+
+    _category = widget.transaction?.category ?? 'Alimentação';
+    _selectedType = widget.transaction?.type ?? TransactionType.expense;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  double _parseCurrencyValue(String value) {
+    final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digitsOnly.isEmpty) {
+      return 0;
+    }
+
+    return (int.tryParse(digitsOnly) ?? 0) / 100;
+  }
+
+  Future<void> _saveTransaction() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final amount = _parseCurrencyValue(_amountController.text);
+
+    final newTransaction = TransactionModel(
+      id: widget.transaction?.id,
+      title: _titleController.text.trim(),
+      amount: amount,
+      date: widget.transaction?.date ?? DateTime.now(),
+      type: _selectedType,
+      category: _category,
+    );
+
+    final dashboardVm = context.read<DashboardViewModel>();
+
+    if (widget.transaction == null) {
+      await dashboardVm.addTransaction(newTransaction);
+    } else {
+      await dashboardVm.updateTransaction(newTransaction);
+    }
+
+    if (!mounted) return;
+
+    widget.onClose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(
+          maxHeight: 560,
+        ),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.18),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const SizedBox(width: 40),
+                    Expanded(
+                      child: Text(
+                        widget.transaction == null
+                            ? 'Adicionar Transação'
+                            : 'Editar Transação',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Fechar',
+                      onPressed: widget.onClose,
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _titleController,
+                  decoration: InputDecoration(
+                    labelText: 'Título',
+                    prefixIcon: const Icon(Icons.description),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Informe o título';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _amountController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    _BrazilianCurrencyInputFormatter(),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: 'Valor',
+                    prefixIcon: const Icon(Icons.attach_money),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Informe o valor';
+                    }
+
+                    final parsedValue = _parseCurrencyValue(value);
+
+                    if (parsedValue <= 0) {
+                      return 'Informe um valor numérico válido';
+                    }
+
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<TransactionType>(
+                  value: _selectedType,
+                  decoration: InputDecoration(
+                    labelText: 'Tipo',
+                    prefixIcon: const Icon(Icons.swap_vert),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: TransactionType.income,
+                      child: Text('Receita'),
+                    ),
+                    DropdownMenuItem(
+                      value: TransactionType.expense,
+                      child: Text('Despesa'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+
+                    setState(() {
+                      _selectedType = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  value: _category,
+                  decoration: InputDecoration(
+                    labelText: 'Categoria',
+                    prefixIcon: const Icon(Icons.category),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'Alimentação',
+                      child: Text('Alimentação'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Transporte',
+                      child: Text('Transporte'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Moradia',
+                      child: Text('Moradia'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Lazer',
+                      child: Text('Lazer'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Salário',
+                      child: Text('Salário'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Outros',
+                      child: Text('Outros'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+
+                    setState(() {
+                      _category = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: _saveTransaction,
+                    child: Text(
+                      widget.transaction == null ? 'Adicionar' : 'Salvar',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
