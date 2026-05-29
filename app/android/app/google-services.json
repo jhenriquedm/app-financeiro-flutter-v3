@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "451407143877",
+    "project_id": "money-wise-v3",
+    "storage_bucket": "money-wise-v3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451407143877:android:3380b37874b7a20f0161ac",
+        "android_client_info": {
+          "package_name": "com.example.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9fCpiwgWpZInti2TvtjQIawD4wo_0Cbg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
