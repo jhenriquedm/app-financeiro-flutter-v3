@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../viewmodels/auth_viewmodel.dart';
+import '../../providers/app_providers.dart';
 import '../../widgets/app_screen_container.dart';
 
-class RegisterView extends StatefulWidget {
+class RegisterView extends ConsumerStatefulWidget {
   const RegisterView({super.key});
 
   @override
-  State<RegisterView> createState() => _RegisterViewState();
+  ConsumerState<RegisterView> createState() => _RegisterViewState();
 }
 
-class _RegisterViewState extends State<RegisterView> {
+class _RegisterViewState extends ConsumerState<RegisterView> {
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
@@ -60,7 +60,7 @@ class _RegisterViewState extends State<RegisterView> {
 
     if (!_formKey.currentState!.validate()) return;
 
-    final authVm = context.read<AuthViewModel>();
+    final authVm = ref.read(authProvider);
 
     final success = await authVm.register(
       name: _nameController.text,
@@ -102,7 +102,7 @@ class _RegisterViewState extends State<RegisterView> {
 
   @override
   Widget build(BuildContext context) {
-    final authVm = context.watch<AuthViewModel>();
+    final authVm = ref.watch(authProvider);
 
     return Scaffold(
       body: Container(
@@ -133,9 +133,7 @@ class _RegisterViewState extends State<RegisterView> {
                       size: 58,
                       color: Colors.blue,
                     ),
-
                     const SizedBox(height: 8),
-
                     const Text(
                       'Criar Conta',
                       style: TextStyle(
@@ -143,9 +141,7 @@ class _RegisterViewState extends State<RegisterView> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
                     Text(
                       'Cadastre-se para organizar suas finanças',
                       textAlign: TextAlign.center,
@@ -154,13 +150,9 @@ class _RegisterViewState extends State<RegisterView> {
                         fontSize: 13,
                       ),
                     ),
-
                     const SizedBox(height: 18),
-
                     _buildBenefitsCard(),
-
                     const SizedBox(height: 28),
-
                     TextFormField(
                       controller: _nameController,
                       maxLength: 40,
@@ -191,9 +183,7 @@ class _RegisterViewState extends State<RegisterView> {
                         return null;
                       },
                     ),
-
                     const SizedBox(height: 12),
-
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -218,9 +208,7 @@ class _RegisterViewState extends State<RegisterView> {
                         return null;
                       },
                     ),
-
                     const SizedBox(height: 12),
-
                     TextFormField(
                       controller: _passwordController,
                       obscureText: !_showPassword,
@@ -260,14 +248,11 @@ class _RegisterViewState extends State<RegisterView> {
                         return null;
                       },
                     ),
-
                     if (_registerMessage != null) ...[
                       const SizedBox(height: 10),
                       _buildRegisterMessage(_registerMessage!),
                     ],
-
                     const SizedBox(height: 16),
-
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -297,9 +282,7 @@ class _RegisterViewState extends State<RegisterView> {
                               ),
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     TextButton(
                       onPressed: _backToLogin,
                       child: const Text(
@@ -337,23 +320,17 @@ class _RegisterViewState extends State<RegisterView> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 12),
-
           _buildBenefitItem(
             Icons.check_circle,
             'Controle receitas e despesas',
           ),
-
           const SizedBox(height: 8),
-
           _buildBenefitItem(
             Icons.check_circle,
             'Saldo atualizado automaticamente',
           ),
-
           const SizedBox(height: 8),
-
           _buildBenefitItem(
             Icons.check_circle,
             'Relatórios financeiros',

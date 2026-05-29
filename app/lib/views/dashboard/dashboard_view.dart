@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/app_providers.dart';
 
 import '../../models/transaction_model.dart';
 import '../../utils/app_colors.dart';
@@ -50,14 +51,15 @@ class _BrazilianCurrencyInputFormatter extends TextInputFormatter {
   }
 }
 
-class DashboardView extends StatefulWidget {
+class DashboardView extends ConsumerStatefulWidget {
   const DashboardView({super.key});
 
   @override
-  State<DashboardView> createState() => _DashboardViewState();
+  ConsumerState<DashboardView> createState() => _DashboardViewState();
 }
 
-class _DashboardViewState extends State<DashboardView> {
+class _DashboardViewState
+    extends ConsumerState<DashboardView> {
   bool _showTransactionForm = false;
   TransactionModel? _editingTransaction;
 
@@ -66,12 +68,12 @@ class _DashboardViewState extends State<DashboardView> {
     super.initState();
 
     Future.microtask(() {
-      context.read<DashboardViewModel>().loadTransactions();
-    });
+  ref.read(dashboardProvider).loadTransactions();
+  });
   }
 
   Future<void> _logout() async {
-    context.read<AuthViewModel>().logout();
+    ref.read(authProvider).logout();
 
     Navigator.pushReplacement(
       context,
@@ -129,16 +131,16 @@ class _DashboardViewState extends State<DashboardView> {
     );
 
     if (confirm == true && transaction.id != null) {
-      await context
-          .read<DashboardViewModel>()
+      await ref
+          .read(dashboardProvider)
           .deleteTransaction(transaction.id!);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authVm = context.watch<AuthViewModel>();
-    final dashboardVm = context.watch<DashboardViewModel>();
+    final authVm = ref.watch(authProvider);
+    final dashboardVm = ref.watch(dashboardProvider);
 
     return Scaffold(
       body: Container(
@@ -540,7 +542,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 }
 
-class _TransactionFormCard extends StatefulWidget {
+class _TransactionFormCard extends ConsumerStatefulWidget {
   const _TransactionFormCard({
     required this.transaction,
     required this.onClose,
@@ -550,10 +552,10 @@ class _TransactionFormCard extends StatefulWidget {
   final VoidCallback onClose;
 
   @override
-  State<_TransactionFormCard> createState() => _TransactionFormCardState();
+  ConsumerState<_TransactionFormCard> createState() => _TransactionFormCardState();
 }
 
-class _TransactionFormCardState extends State<_TransactionFormCard> {
+class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _titleController;
@@ -613,7 +615,7 @@ class _TransactionFormCardState extends State<_TransactionFormCard> {
       category: _category,
     );
 
-    final dashboardVm = context.read<DashboardViewModel>();
+    final dashboardVm = ref.read(dashboardProvider);
 
     if (widget.transaction == null) {
       await dashboardVm.addTransaction(newTransaction);

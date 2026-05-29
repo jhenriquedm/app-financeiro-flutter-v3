@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 
+import '../../providers/app_providers.dart';
 import '../../utils/app_colors.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
 import '../../widgets/app_screen_container.dart';
@@ -14,12 +15,12 @@ String _formatCurrencyBr(double value) {
   ).format(value);
 }
 
-class AnalysisView extends StatelessWidget {
+class AnalysisView extends ConsumerWidget {
   const AnalysisView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final vm = context.watch<DashboardViewModel>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final vm = ref.watch(dashboardProvider);
     final data = vm.expensesByCategory;
 
     return Scaffold(
@@ -34,7 +35,10 @@ class AnalysisView extends StatelessWidget {
         ),
         child: AppScreenContainer(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 18,
+            ),
             child: Column(
               children: [
                 Row(
@@ -57,13 +61,17 @@ class AnalysisView extends StatelessWidget {
                     const SizedBox(width: 48),
                   ],
                 ),
+
                 const SizedBox(height: 12),
+
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
                         _buildBalanceCard(vm),
+
                         const SizedBox(height: 10),
+
                         Row(
                           children: [
                             Expanded(
@@ -85,19 +93,27 @@ class AnalysisView extends StatelessWidget {
                             ),
                           ],
                         ),
+
                         const SizedBox(height: 16),
+
                         _buildSectionTitle(
                           icon: Icons.pie_chart,
                           title: 'Despesas por categoria',
                         ),
+
                         const SizedBox(height: 10),
+
                         _buildChart(vm, data),
+
                         const SizedBox(height: 16),
+
                         _buildSectionTitle(
                           icon: Icons.list_alt,
                           title: 'Resumo por categoria',
                         ),
+
                         const SizedBox(height: 10),
+
                         _buildCategoryList(vm, data),
                       ],
                     ),
@@ -122,14 +138,19 @@ class AnalysisView extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Text('Saldo Atual', style: TextStyle(fontSize: 13)),
+          const Text(
+            'Saldo Atual',
+            style: TextStyle(fontSize: 13),
+          ),
           const SizedBox(height: 6),
           Text(
             _formatCurrencyBr(vm.balance),
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: vm.balance >= 0 ? Colors.green : Colors.red,
+              color: vm.balance >= 0
+                  ? Colors.green
+                  : Colors.red,
             ),
           ),
         ],
@@ -154,7 +175,10 @@ class AnalysisView extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 22),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontSize: 12)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 12),
+          ),
           const SizedBox(height: 4),
           Text(
             _formatCurrencyBr(value),
@@ -175,7 +199,11 @@ class AnalysisView extends StatelessWidget {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.primary),
+        Icon(
+          icon,
+          size: 20,
+          color: AppColors.primary,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -195,7 +223,9 @@ class AnalysisView extends StatelessWidget {
     Map<String, double> data,
   ) {
     if (data.isEmpty || vm.totalExpense <= 0) {
-      return _buildEmptyState('Nenhuma despesa cadastrada para análise.');
+      return _buildEmptyState(
+        'Nenhuma despesa cadastrada para análise.',
+      );
     }
 
     return Container(
@@ -208,12 +238,14 @@ class AnalysisView extends StatelessWidget {
       ),
       child: Column(
         children: data.entries.map((entry) {
-          final percentage = entry.value / vm.totalExpense;
+          final percentage =
+              entry.value / vm.totalExpense;
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -239,7 +271,8 @@ class AnalysisView extends StatelessWidget {
                 LinearProgressIndicator(
                   value: percentage,
                   minHeight: 9,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius:
+                      BorderRadius.circular(10),
                 ),
               ],
             ),
@@ -264,11 +297,14 @@ class AnalysisView extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.grey[100],
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: Colors.grey.shade300,
+        ),
       ),
       child: Column(
         children: data.entries.map((entry) {
-          final percentage = entry.value / vm.totalExpense;
+          final percentage =
+              entry.value / vm.totalExpense;
 
           return ListTile(
             dense: true,
@@ -283,7 +319,9 @@ class AnalysisView extends StatelessWidget {
             ),
             title: Text(
               entry.key,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             subtitle: Text(
               '${(percentage * 100).toStringAsFixed(1)}% do total de despesas',
@@ -313,7 +351,10 @@ class AnalysisView extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Icons.info_outline, color: Colors.grey[600]),
+          Icon(
+            Icons.info_outline,
+            color: Colors.grey[600],
+          ),
           const SizedBox(height: 8),
           Text(
             message,

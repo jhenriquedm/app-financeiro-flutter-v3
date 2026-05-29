@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../data/transaction_dao.dart';
+import '../data/repositories/transaction_repository.dart';
 import '../models/transaction_model.dart';
 
 class DashboardViewModel extends ChangeNotifier {
-  final TransactionDao _transactionDao = TransactionDao();
+  final TransactionRepository _transactionRepository;
+
+  DashboardViewModel({
+    required TransactionRepository transactionRepository,
+  }) : _transactionRepository = transactionRepository;
 
   List<TransactionModel> _transactions = [];
   bool _isLoading = false;
@@ -41,7 +45,7 @@ class DashboardViewModel extends ChangeNotifier {
     _setLoading(true);
 
     try {
-      _transactions = await _transactionDao.getTransactions();
+      _transactions = await _transactionRepository.getTransactions();
       _errorMessage = null;
     } catch (error) {
       _errorMessage = 'Erro ao carregar transações';
@@ -51,7 +55,7 @@ class DashboardViewModel extends ChangeNotifier {
   }
 
   Future<void> addTransaction(TransactionModel transaction) async {
-    await _transactionDao.insertTransaction(transaction);
+    await _transactionRepository.addTransaction(transaction);
     await loadTransactions();
   }
 
@@ -60,12 +64,12 @@ class DashboardViewModel extends ChangeNotifier {
       return;
     }
 
-    await _transactionDao.updateTransaction(transaction);
+    await _transactionRepository.updateTransaction(transaction);
     await loadTransactions();
   }
 
   Future<void> deleteTransaction(int id) async {
-    await _transactionDao.deleteTransaction(id);
+    await _transactionRepository.deleteTransaction(id);
     await loadTransactions();
   }
 
