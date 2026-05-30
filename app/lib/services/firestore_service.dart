@@ -29,13 +29,27 @@ class FirestoreService {
         .collection('users')
         .doc(uid)
         .collection('transactions')
-        .add({
+        .doc(transaction.id.toString())
+        .set({
+      'localId': transaction.id,
       'title': transaction.title,
       'amount': transaction.amount,
       'type': transaction.type.name,
       'category': transaction.category,
       'date': Timestamp.fromDate(transaction.date),
-      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  Future<void> deleteTransaction({
+    required String uid,
+    required int transactionId,
+  }) {
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('transactions')
+        .doc(transactionId.toString())
+        .delete();
   }
 }

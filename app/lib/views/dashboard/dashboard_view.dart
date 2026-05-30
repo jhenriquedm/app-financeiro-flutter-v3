@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/app_providers.dart';
 
 import '../../models/transaction_model.dart';
+import '../../providers/app_providers.dart';
 import '../../utils/app_colors.dart';
-import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
+import '../../viewmodels/news_viewmodel.dart';
 import '../../widgets/app_screen_container.dart';
 import '../analysis/analysis_view.dart';
 import '../auth/login_view.dart';
@@ -58,8 +58,7 @@ class DashboardView extends ConsumerStatefulWidget {
   ConsumerState<DashboardView> createState() => _DashboardViewState();
 }
 
-class _DashboardViewState
-    extends ConsumerState<DashboardView> {
+class _DashboardViewState extends ConsumerState<DashboardView> {
   bool _showTransactionForm = false;
   TransactionModel? _editingTransaction;
 
@@ -67,13 +66,16 @@ class _DashboardViewState
   void initState() {
     super.initState();
 
-    Future.microtask(() {
-  ref.read(dashboardProvider).loadTransactions();
-  });
+    Future.microtask(() async {
+      await ref.read(dashboardProvider).loadTransactions();
+      await ref.read(newsProvider).loadNews();
+    });
   }
 
   Future<void> _logout() async {
-    ref.read(authProvider).logout();
+    await ref.read(authProvider).logout();
+
+    if (!mounted) return;
 
     Navigator.pushReplacement(
       context,
@@ -131,9 +133,7 @@ class _DashboardViewState
     );
 
     if (confirm == true && transaction.id != null) {
-      await ref
-          .read(dashboardProvider)
-          .deleteTransaction(transaction.id!);
+      await ref.read(dashboardProvider).deleteTransaction(transaction.id!);
     }
   }
 
@@ -141,6 +141,7 @@ class _DashboardViewState
   Widget build(BuildContext context) {
     final authVm = ref.watch(authProvider);
     final dashboardVm = ref.watch(dashboardProvider);
+    final newsVm = ref.watch(newsProvider);
 
     return Scaffold(
       body: Container(
@@ -253,6 +254,8 @@ class _DashboardViewState
                                   : _buildTransactionList(dashboardVm),
                             ),
                             const SizedBox(height: 14),
+                            _buildNewsSection(newsVm),
+                            const SizedBox(height: 14),
                           ],
                         ),
                       ),
@@ -308,7 +311,7 @@ class _DashboardViewState
     );
   }
 
-  Widget _buildBalanceCard(DashboardViewModel vm) {
+    Widget _buildBalanceCard(DashboardViewModel vm) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -441,6 +444,95 @@ class _DashboardViewState
     );
   }
 
+  Widget _buildNewsSection(NewsViewModel vm) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.grey.shade300,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Dicas Financeiras',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Atualizar',
+                onPressed: () {
+                  ref.read(newsProvider).loadNews();
+                },
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (vm.isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(18),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (vm.news.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(18),
+                child: Text(
+                  'Nenhuma notícia disponível.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              height: 220,
+              child: ListView.separated(
+                itemCount: vm.news.length > 5 ? 5 : vm.news.length,
+                separatorBuilder: (_, __) => const Divider(),
+                itemBuilder: (context, index) {
+                  final news = vm.news[index];
+
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(
+                      Icons.trending_up,
+                      color: Colors.green,
+                    ),
+                    title: Text(
+                      news.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      news.source.isEmpty ? 'Fonte não informada' : news.source,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTransactionList(DashboardViewModel vm) {
     if (vm.transactions.isEmpty) {
       return Container(
@@ -552,7 +644,8 @@ class _TransactionFormCard extends ConsumerStatefulWidget {
   final VoidCallback onClose;
 
   @override
-  ConsumerState<_TransactionFormCard> createState() => _TransactionFormCardState();
+  ConsumerState<_TransactionFormCard> createState() =>
+      _TransactionFormCardState();
 }
 
 class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {

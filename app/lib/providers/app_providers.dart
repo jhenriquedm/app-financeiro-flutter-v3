@@ -7,12 +7,10 @@ import '../data/transaction_dao.dart';
 import '../data/user_dao.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/news_service.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/dashboard_viewmodel.dart';
-
-/// ===============================
-/// DAO Providers
-/// ===============================
+import '../viewmodels/news_viewmodel.dart';
 
 final userDaoProvider = Provider<UserDao>((ref) {
   return UserDao();
@@ -21,10 +19,6 @@ final userDaoProvider = Provider<UserDao>((ref) {
 final transactionDaoProvider = Provider<TransactionDao>((ref) {
   return TransactionDao();
 });
-
-/// ===============================
-/// Services Providers
-/// ===============================
 
 final firebaseAuthServiceProvider =
     Provider<FirebaseAuthService>((ref) {
@@ -36,9 +30,10 @@ final firestoreServiceProvider =
   return FirestoreService();
 });
 
-/// ===============================
-/// Repository Providers
-/// ===============================
+final newsServiceProvider =
+    Provider<NewsService>((ref) {
+  return NewsService();
+});
 
 final authRepositoryProvider =
     Provider<AuthRepository>((ref) {
@@ -56,12 +51,12 @@ final transactionRepositoryProvider =
   return TransactionRepository(
     transactionDao:
         ref.read(transactionDaoProvider),
+    firebaseAuthService:
+        ref.read(firebaseAuthServiceProvider),
+    firestoreService:
+        ref.read(firestoreServiceProvider),
   );
 });
-
-/// ===============================
-/// ViewModel Providers
-/// ===============================
 
 final authProvider =
     ChangeNotifierProvider<AuthViewModel>(
@@ -74,13 +69,20 @@ final authProvider =
 );
 
 final dashboardProvider =
-    ChangeNotifierProvider<
-        DashboardViewModel>(
+    ChangeNotifierProvider<DashboardViewModel>(
   (ref) {
     return DashboardViewModel(
-      transactionRepository: ref.read(
-        transactionRepositoryProvider,
-      ),
+      transactionRepository:
+          ref.read(transactionRepositoryProvider),
+    );
+  },
+);
+
+final newsProvider =
+    ChangeNotifierProvider<NewsViewModel>(
+  (ref) {
+    return NewsViewModel(
+      newsService: ref.read(newsServiceProvider),
     );
   },
 );
