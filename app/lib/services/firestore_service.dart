@@ -41,6 +41,36 @@ class FirestoreService {
     });
   }
 
+  Future<List<TransactionModel>> getTransactions({
+    required String uid,
+  }) async {
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('transactions')
+        .orderBy('date', descending: true)
+        .get();
+
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+
+      final timestamp = data['date'];
+
+      return TransactionModel(
+        id: data['localId'] as int?,
+        title: data['title'] ?? '',
+        amount: (data['amount'] as num).toDouble(),
+        date: timestamp is Timestamp
+            ? timestamp.toDate()
+            : DateTime.now(),
+        type: data['type'] == 'income'
+            ? TransactionType.income
+            : TransactionType.expense,
+        category: data['category'] ?? 'Outros',
+      );
+    }).toList();
+  }
+
   Future<void> deleteTransaction({
     required String uid,
     required int transactionId,

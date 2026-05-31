@@ -325,17 +325,19 @@ Future.delayed(
                               ],
                             ),
                             SizedBox(
-                              height: 230,
-                             child: dashboardVm.isLoading
-                                  ? const Column(
-                                      children: [
-                                        AppSkeletonCard(height: 64),
-                                        AppSkeletonCard(height: 64),
-                                        AppSkeletonCard(height: 64),
-                                      ],
-                                    )
-                                  : _buildTransactionList(dashboardVm),
-                            ),
+  height: dashboardVm.transactions.isEmpty
+      ? 285
+      : 230,
+  child: dashboardVm.isLoading
+      ? const Column(
+          children: [
+            AppSkeletonCard(height: 64),
+            AppSkeletonCard(height: 64),
+            AppSkeletonCard(height: 64),
+          ],
+        )
+      : _buildTransactionList(dashboardVm),
+),
                             const SizedBox(height: 14),
                             _buildNewsSection(newsVm),
                             const SizedBox(height: 14),
@@ -791,6 +793,13 @@ Widget _buildSummaryCard(
               overflow: TextOverflow.ellipsis,
             ),
             trailing: PopupMenuButton<String>(
+              tooltip: 'Opções',
+              elevation: 10,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              offset: const Offset(0, 42),
               onSelected: (value) {
                 if (value == 'edit') {
                   _openTransactionForm(transaction: transaction);
@@ -800,14 +809,45 @@ Widget _buildSummaryCard(
                   _confirmDelete(transaction);
                 }
               },
-              itemBuilder: (_) => const [
+              itemBuilder: (_) => [
                 PopupMenuItem(
                   value: 'edit',
-                  child: Text('Editar'),
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.edit_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        'Editar',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 PopupMenuItem(
                   value: 'delete',
-                  child: Text('Excluir'),
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.delete_rounded,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        'Excluir',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
               child: Column(

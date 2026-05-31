@@ -33,7 +33,25 @@ class TransactionRepository {
     return localId;
   }
 
-  Future<List<TransactionModel>> getTransactions() {
+  Future<List<TransactionModel>> getTransactions() async {
+    final uid = _firebaseAuthService.currentFirebaseUser?.uid;
+
+    if (uid != null) {
+      try {
+        final remoteTransactions =
+            await _firestoreService.getTransactions(uid: uid);
+
+        for (final transaction in remoteTransactions) {
+          if (transaction.id != null) {
+            await _transactionDao.upsertTransaction(transaction);
+          }
+        }
+      } catch (_) {
+        // Se estiver sem internet ou Firebase falhar,
+        // mantém funcionamento offline com SQLite.
+      }
+    }
+
     return _transactionDao.getTransactions();
   }
 

@@ -1,3 +1,5 @@
+import 'package:sqflite/sqflite.dart';
+
 import '../models/transaction_model.dart';
 import 'database_helper.dart';
 
@@ -8,6 +10,16 @@ class TransactionDao {
     return db.insert(
       'transactions',
       transaction.toMap(),
+    );
+  }
+
+  Future<int> upsertTransaction(TransactionModel transaction) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return db.insert(
+      'transactions',
+      transaction.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 

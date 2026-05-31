@@ -13,23 +13,45 @@ class AuthRepository {
     required FirebaseAuthService firebaseAuthService,
     required FirestoreService firestoreService,
   })  : _userDao = userDao,
-        _firebaseAuthService =
-            firebaseAuthService,
-        _firestoreService =
-            firestoreService;
+        _firebaseAuthService = firebaseAuthService,
+        _firestoreService = firestoreService;
 
   Future<UserModel?> login({
     required String email,
     required String password,
   }) async {
+    // Login Firebase
     await _firebaseAuthService.login(
       email: email,
       password: password,
     );
 
-    return _userDao.findByEmail(
+    // Busca no SQLite
+    UserModel? localUser =
+        await _userDao.findByEmail(
       email.trim(),
     );
+
+    // Se não existir localmente,
+    // cria automaticamente
+    if (localUser == null) {
+      localUser = UserModel(
+        name: email.split('@').first,
+        email: email.trim(),
+        password: password.trim(),
+      );
+
+      await _userDao.insertUser(
+        localUser,
+      );
+
+      localUser =
+          await _userDao.findByEmail(
+        email.trim(),
+      );
+    }
+
+    return localUser;
   }
 
   Future<UserModel?> findByEmail(
@@ -43,7 +65,6 @@ class AuthRepository {
   Future<int> register(
     UserModel user,
   ) async {
-    /// 1. Cria usuário no Firebase Auth
     final credential =
         await _firebaseAuthService.register(
       email: user.email,
@@ -52,23 +73,16 @@ class AuthRepository {
 
     final uid = credential.user?.uid;
 
-    if (uid == null) {
-      throw Exception(
-        'Erro ao obter UID do Firebase.',
+    if (uid != null) {
+      await _firestoreService.saveUser(
+        uid: uid,
+        user: user,
       );
     }
 
-    /// 2. Salva usuário no SQLite
-    final localId =
-        await _userDao.insertUser(user);
-
-    /// 3. Salva usuário no Firestore
-    await _firestoreService.saveUser(
-      uid: uid,
-      user: user,
+    return _userDao.insertUser(
+      user,
     );
-
-    return localId;
   }
 
   Future<void> logout() {
