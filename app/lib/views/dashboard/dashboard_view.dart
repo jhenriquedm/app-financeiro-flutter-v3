@@ -11,6 +11,7 @@ import '../../viewmodels/news_viewmodel.dart';
 import '../../widgets/app_screen_container.dart';
 import '../analysis/analysis_view.dart';
 import '../auth/login_view.dart';
+import '../../widgets/app_skeleton_card.dart';
 
 String _formatCurrencyBr(double value) {
   return NumberFormat.currency(
@@ -99,6 +100,80 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
     });
   }
 
+void _showSuccessMessage(String message) {
+  final overlay = Overlay.of(context);
+
+  late OverlayEntry overlayEntry;
+
+  overlayEntry = OverlayEntry(
+    builder: (context) {
+      return Positioned(
+        bottom: 95,
+        left: 0,
+        right: 0,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 300,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.18),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  overlay.insert(overlayEntry);
+
+Future.delayed(
+  const Duration(seconds: 2),
+  () {
+    if (overlayEntry.mounted) {
+      overlayEntry.remove();
+    }
+  },
+);
+}
+
   Future<void> _confirmDelete(TransactionModel transaction) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -134,6 +209,10 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
 
     if (confirm == true && transaction.id != null) {
       await ref.read(dashboardProvider).deleteTransaction(transaction.id!);
+
+      if (!mounted) return;
+
+      _showSuccessMessage('Transação excluída com sucesso.');
     }
   }
 
@@ -247,9 +326,13 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
                             ),
                             SizedBox(
                               height: 230,
-                              child: dashboardVm.isLoading
-                                  ? const Center(
-                                      child: CircularProgressIndicator(),
+                             child: dashboardVm.isLoading
+                                  ? const Column(
+                                      children: [
+                                        AppSkeletonCard(height: 64),
+                                        AppSkeletonCard(height: 64),
+                                        AppSkeletonCard(height: 64),
+                                      ],
                                     )
                                   : _buildTransactionList(dashboardVm),
                             ),
@@ -300,6 +383,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
                       child: _TransactionFormCard(
                         transaction: _editingTransaction,
                         onClose: _closeTransactionForm,
+                        onSuccess: _showSuccessMessage,
                       ),
                     ),
                   ),
@@ -311,77 +395,140 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
     );
   }
 
-    Widget _buildBalanceCard(DashboardViewModel vm) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.grey.shade300,
-        ),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Saldo Atual',
-            style: TextStyle(fontSize: 13),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _formatCurrencyBr(vm.balance),
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: vm.balance >= 0 ? Colors.green : Colors.red,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+Widget _buildBalanceCard(DashboardViewModel vm) {
+  final isPositive = vm.balance >= 0;
 
-  Widget _buildSummaryCard(
-    String title,
-    double value,
-    Color color,
-    IconData icon,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.grey.shade300,
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: isPositive
+            ? [Colors.green.shade500, Colors.green.shade800]
+            : [Colors.red.shade500, Colors.red.shade800],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [
+        BoxShadow(
+          color: (isPositive ? Colors.green : Colors.red).withOpacity(0.32),
+          blurRadius: 18,
+          offset: const Offset(0, 8),
         ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 22,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _formatCurrencyBr(value),
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
-              fontSize: 13,
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet,
+                color: Colors.white,
+                size: 26,
+              ),
             ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Saldo Atual',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          _formatCurrencyBr(vm.balance),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
           ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          isPositive
+              ? 'Sua vida financeira está saudável'
+              : 'Atenção: despesas acima das receitas',
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 13,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildSummaryCard(
+  String title,
+  double value,
+  Color color,
+  IconData icon,
+) {
+  return Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          color.withOpacity(0.95),
+          color.withOpacity(0.65),
         ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
-    );
-  }
+      borderRadius: BorderRadius.circular(22),
+      boxShadow: [
+        BoxShadow(
+          color: color.withOpacity(0.28),
+          blurRadius: 12,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          color: Colors.white,
+          size: 24,
+        ),
+        const SizedBox(height: 10),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _formatCurrencyBr(value),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildChart(DashboardViewModel vm) {
     final data = vm.expensesByCategory;
@@ -480,11 +627,12 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
           ),
           const SizedBox(height: 8),
           if (vm.isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(18),
-                child: CircularProgressIndicator(),
-              ),
+            const Column(
+              children: [
+                AppSkeletonCard(height: 58),
+                AppSkeletonCard(height: 58),
+                AppSkeletonCard(height: 58),
+              ],
             )
           else if (vm.news.isEmpty)
             const Center(
@@ -537,17 +685,71 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
     if (vm.transactions.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: const Center(
-          child: Text(
-            'Nenhuma transação cadastrada.',
-            textAlign: TextAlign.center,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: Colors.grey.shade300,
           ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet,
+                size: 34,
+                color: Colors.green,
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Nenhuma transação encontrada',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Comece adicionando sua primeira receita ou despesa.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: () {
+                _openTransactionForm();
+              },
+              icon: const Icon(
+                Icons.add,
+                color: Colors.white,
+              ),
+              label: const Text(
+                'Adicionar transação',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -638,10 +840,12 @@ class _TransactionFormCard extends ConsumerStatefulWidget {
   const _TransactionFormCard({
     required this.transaction,
     required this.onClose,
+    required this.onSuccess,
   });
 
   final TransactionModel? transaction;
   final VoidCallback onClose;
+  final void Function(String message) onSuccess;
 
   @override
   ConsumerState<_TransactionFormCard> createState() =>
@@ -712,13 +916,19 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
 
     if (widget.transaction == null) {
       await dashboardVm.addTransaction(newTransaction);
+
+      if (!mounted) return;
+
+      widget.onClose();
+      widget.onSuccess('Transação adicionada com sucesso.');
     } else {
       await dashboardVm.updateTransaction(newTransaction);
+
+      if (!mounted) return;
+
+      widget.onClose();
+      widget.onSuccess('Transação atualizada com sucesso.');
     }
-
-    if (!mounted) return;
-
-    widget.onClose();
   }
 
   @override
