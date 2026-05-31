@@ -942,13 +942,23 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
         ),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(26),
+          gradient: LinearGradient(
+            colors: [
+              Colors.white,
+              Colors.grey.shade100,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.9),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.18),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+              color: Colors.black.withOpacity(0.22),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -985,9 +995,31 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
                   controller: _titleController,
                   decoration: InputDecoration(
                     labelText: 'Título',
-                    prefixIcon: const Icon(Icons.description),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    prefixIcon: const Icon(
+                      Icons.description,
+                      color: AppColors.primary,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding:
+                        const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 18,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.circular(18),
+                      borderSide: BorderSide(
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.circular(18),
+                      borderSide: BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                   validator: (value) {
@@ -1006,9 +1038,28 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
                   ],
                   decoration: InputDecoration(
                     labelText: 'Valor',
-                    prefixIcon: const Icon(Icons.attach_money),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    prefixIcon: const Icon(
+                      Icons.attach_money,
+                      color: AppColors.primary,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 18,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide(
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                   validator: (value) {
@@ -1026,41 +1077,227 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
                   },
                 ),
                 const SizedBox(height: 14),
-                DropdownButtonFormField<TransactionType>(
-                  value: _selectedType,
-                  decoration: InputDecoration(
-                    labelText: 'Tipo',
-                    prefixIcon: const Icon(Icons.swap_vert),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                Column(
+  crossAxisAlignment:
+      CrossAxisAlignment.start,
+  children: [
+    const Padding(
+      padding: EdgeInsets.only(
+        left: 4,
+        bottom: 8,
+      ),
+      child: Text(
+        'Tipo da transação',
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+      ),
+    ),
+    Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedType =
+                    TransactionType.income;
+              });
+            },
+            child: AnimatedContainer(
+              duration:
+                  const Duration(
+                milliseconds: 250,
+              ),
+              padding:
+                  const EdgeInsets.symmetric(
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: _selectedType ==
+                        TransactionType
+                            .income
+                    ? Colors.green
+                    : Colors
+                        .grey.shade200,
+                borderRadius:
+                    BorderRadius.circular(
+                  14,
+                ),
+                boxShadow:
+                    _selectedType ==
+                            TransactionType
+                                .income
+                        ? [
+                            BoxShadow(
+                              color: Colors
+                                  .green
+                                  .withOpacity(
+                                0.22,
+                              ),
+                              blurRadius:
+                                  8,
+                              offset:
+                                  const Offset(
+                                0,
+                                3,
+                              ),
+                            ),
+                          ]
+                        : [],
+              ),
+              child: Column(
+                mainAxisSize:
+                    MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons
+                        .arrow_upward_rounded,
+                    size: 18,
+                    color: _selectedType ==
+                            TransactionType
+                                .income
+                        ? Colors.white
+                        : Colors.black54,
+                  ),
+                  const SizedBox(
+                    height: 2,
+                  ),
+                  Text(
+                    'Receita',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _selectedType ==
+                              TransactionType
+                                  .income
+                          ? Colors.white
+                          : Colors.black87,
+                      fontWeight:
+                          FontWeight.bold,
                     ),
                   ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: TransactionType.income,
-                      child: Text('Receita'),
-                    ),
-                    DropdownMenuItem(
-                      value: TransactionType.expense,
-                      child: Text('Despesa'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) return;
-
-                    setState(() {
-                      _selectedType = value;
-                    });
-                  },
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedType =
+                    TransactionType.expense;
+              });
+            },
+            child: AnimatedContainer(
+              duration:
+                  const Duration(
+                milliseconds: 250,
+              ),
+              padding:
+                  const EdgeInsets.symmetric(
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: _selectedType ==
+                        TransactionType
+                            .expense
+                    ? Colors.red
+                    : Colors
+                        .grey.shade200,
+                borderRadius:
+                    BorderRadius.circular(
+                  14,
                 ),
+                boxShadow:
+                    _selectedType ==
+                            TransactionType
+                                .expense
+                        ? [
+                            BoxShadow(
+                              color: Colors
+                                  .red
+                                  .withOpacity(
+                                0.22,
+                              ),
+                              blurRadius:
+                                  8,
+                              offset:
+                                  const Offset(
+                                0,
+                                3,
+                              ),
+                            ),
+                          ]
+                        : [],
+              ),
+              child: Column(
+                mainAxisSize:
+                    MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons
+                        .arrow_downward_rounded,
+                    size: 18,
+                    color: _selectedType ==
+                            TransactionType
+                                .expense
+                        ? Colors.white
+                        : Colors.black54,
+                  ),
+                  const SizedBox(
+                    height: 2,
+                  ),
+                  Text(
+                    'Despesa',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _selectedType ==
+                              TransactionType
+                                  .expense
+                          ? Colors.white
+                          : Colors.black87,
+                      fontWeight:
+                          FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  ],
+),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
                   value: _category,
                   decoration: InputDecoration(
                     labelText: 'Categoria',
-                    prefixIcon: const Icon(Icons.category),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    prefixIcon: const Icon(
+                      Icons.category,
+                      color: AppColors.primary,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 18,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide(
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                   items: const [
@@ -1101,19 +1338,42 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
                 SizedBox(
                   width: double.infinity,
                   height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _saveTransaction,
+                    child: Container(
+                      width: double.infinity,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            Colors.blue.shade700,
+                          ],
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary
+                                .withOpacity(0.28),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                    ),
-                    onPressed: _saveTransaction,
-                    child: Text(
-                      widget.transaction == null ? 'Adicionar' : 'Salvar',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
+                      child: Center(
+                        child: Text(
+                          widget.transaction == null
+                              ? 'Adicionar'
+                              : 'Salvar',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight:
+                                FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
