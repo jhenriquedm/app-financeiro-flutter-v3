@@ -20,6 +20,29 @@ class AuthViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _currentUser != null;
 
+  Future<bool> restoreSession() async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final user = await _authRepository.restoreSession();
+
+      if (user == null) {
+        _setLoading(false);
+        return false;
+      }
+
+      _currentUser = user;
+      _setLoading(false);
+      return true;
+    } catch (_) {
+      _currentUser = null;
+      _errorMessage = null;
+      _setLoading(false);
+      return false;
+    }
+  }
+
   Future<bool> login({
     required String email,
     required String password,

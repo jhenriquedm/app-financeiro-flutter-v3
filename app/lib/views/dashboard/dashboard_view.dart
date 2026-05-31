@@ -12,6 +12,7 @@ import '../../widgets/app_screen_container.dart';
 import '../analysis/analysis_view.dart';
 import '../auth/login_view.dart';
 import '../../widgets/app_skeleton_card.dart';
+import '../../viewmodels/market_viewmodel.dart';
 
 String _formatCurrencyBr(double value) {
   return NumberFormat.currency(
@@ -70,6 +71,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
     Future.microtask(() async {
       await ref.read(dashboardProvider).loadTransactions();
       await ref.read(newsProvider).loadNews();
+      await ref.read(marketProvider).loadQuotes();
     });
   }
 
@@ -221,6 +223,7 @@ Future.delayed(
     final authVm = ref.watch(authProvider);
     final dashboardVm = ref.watch(dashboardProvider);
     final newsVm = ref.watch(newsProvider);
+    final marketVm = ref.watch(marketProvider);
 
     return Scaffold(
       body: Container(
@@ -298,6 +301,8 @@ Future.delayed(
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 14),
+                            _buildMarketSection(marketVm),
                             const SizedBox(height: 14),
                             _buildChart(dashboardVm),
                             const SizedBox(height: 14),
@@ -592,7 +597,176 @@ Widget _buildSummaryCard(
       ),
     );
   }
+  
+Widget _buildMarketSection(MarketViewModel vm) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          Colors.indigo.shade500,
+          Colors.blue.shade700,
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(22),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.blue.withOpacity(0.25),
+          blurRadius: 14,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Mercado agora',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Atualizar mercado',
+              onPressed: () {
+                ref.read(marketProvider).loadQuotes();
+              },
+              icon: const Icon(
+                Icons.refresh,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (vm.isLoading)
+          const Column(
+            children: [
+              AppSkeletonCard(height: 54),
+              AppSkeletonCard(height: 54),
+            ],
+          )
+        else if (vm.quotes.isEmpty)
+          const Text(
+            'Não foi possível carregar as cotações agora.',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+            ),
+          )
+        else
+          Column(
+            children: vm.quotes.map((quote) {
+              final isPositive = quote.variation >= 0;
 
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        quote.code == 'BTC'
+                            ? Icons.currency_bitcoin
+                            : Icons.attach_money,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _marketLabel(quote.code),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            quote.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          _formatCurrencyBr(quote.bid),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${isPositive ? '+' : ''}${quote.percentageChange.toStringAsFixed(2)}%',
+                          style: TextStyle(
+                            color: isPositive
+                                ? Colors.greenAccent
+                                : Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+      ],
+    ),
+  );
+}
+
+String _marketLabel(String code) {
+  switch (code) {
+    case 'USD':
+      return 'Dólar';
+    case 'EUR':
+      return 'Euro';
+    case 'BTC':
+      return 'Bitcoin';
+    default:
+      return code;
+  }
+}
   Widget _buildNewsSection(NewsViewModel vm) {
     return Container(
       width: double.infinity,

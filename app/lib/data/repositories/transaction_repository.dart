@@ -20,39 +20,25 @@ class TransactionRepository {
     final localId = await _transactionDao.insertTransaction(transaction);
 
     final savedTransaction = transaction.copyWith(id: localId);
-
     final uid = _firebaseAuthService.currentFirebaseUser?.uid;
 
     if (uid != null) {
-      await _firestoreService.saveTransaction(
-        uid: uid,
-        transaction: savedTransaction,
-      );
+      _syncSaveTransaction(uid, savedTransaction);
     }
 
     return localId;
   }
 
   Future<List<TransactionModel>> getTransactions() async {
+    final localTransactions = await _transactionDao.getTransactions();
+
     final uid = _firebaseAuthService.currentFirebaseUser?.uid;
 
     if (uid != null) {
-      try {
-        final remoteTransactions =
-            await _firestoreService.getTransactions(uid: uid);
-
-        for (final transaction in remoteTransactions) {
-          if (transaction.id != null) {
-            await _transactionDao.upsertTransaction(transaction);
-          }
-        }
-      } catch (_) {
-        // Se estiver sem internet ou Firebase falhar,
-        // mantém funcionamento offline com SQLite.
-      }
+      _syncRemoteTransactions(uid);
     }
 
-    return _transactionDao.getTransactions();
+    return localTransactions;
   }
 
   Future<int> updateTransaction(TransactionModel transaction) async {
@@ -61,10 +47,7 @@ class TransactionRepository {
     final uid = _firebaseAuthService.currentFirebaseUser?.uid;
 
     if (uid != null && transaction.id != null) {
-      await _firestoreService.saveTransaction(
-        uid: uid,
-        transaction: transaction,
-      );
+      _syncSaveTransaction(uid, transaction);
     }
 
     return result;
@@ -76,12 +59,53 @@ class TransactionRepository {
     final uid = _firebaseAuthService.currentFirebaseUser?.uid;
 
     if (uid != null) {
-      await _firestoreService.deleteTransaction(
-        uid: uid,
-        transactionId: id,
-      );
+      _syncDeleteTransaction(uid, id);
     }
 
     return result;
+  }
+
+  Future<void> _syncSaveTransaction(
+    String uid,
+    TransactionModel transaction,
+  ) async {
+    try {
+      await _firestoreService.saveTransaction(
+        uid: uid,
+        transaction: transaction,
+      );
+    } catch (_) {
+      // Offline: mantém salvo no SQLite.
+      // A sincronização remota pode ser feita quando voltar online.
+    }
+  }
+
+  Future<void> _syncDeleteTransaction(
+    String uid,
+    int transactionId,
+  ) async {
+    try {
+      await _firestoreService.deleteTransaction(
+        uid: uid,
+        transactionId: transactionId,
+      );
+    } catch (_) {
+      // Offline: remove localmente e ignora falha remota temporária.
+    }
+  }
+
+  Future<void> _syncRemoteTransactions(String uid) async {
+    try {
+      final remoteTransactions =
+          await _firestoreService.getTransactions(uid: uid);
+
+      for (final transaction in remoteTransactions) {
+        if (transaction.id != null) {
+          await _transactionDao.upsertTransaction(transaction);
+        }
+      }
+    } catch (_) {
+      // Offline: usa apenas SQLite.
+    }
   }
 }

@@ -20,20 +20,15 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    // Login Firebase
     await _firebaseAuthService.login(
       email: email,
       password: password,
     );
 
-    // Busca no SQLite
-    UserModel? localUser =
-        await _userDao.findByEmail(
+    UserModel? localUser = await _userDao.findByEmail(
       email.trim(),
     );
 
-    // Se não existir localmente,
-    // cria automaticamente
     if (localUser == null) {
       localUser = UserModel(
         name: email.split('@').first,
@@ -41,12 +36,9 @@ class AuthRepository {
         password: password.trim(),
       );
 
-      await _userDao.insertUser(
-        localUser,
-      );
+      await _userDao.insertUser(localUser);
 
-      localUser =
-          await _userDao.findByEmail(
+      localUser = await _userDao.findByEmail(
         email.trim(),
       );
     }
@@ -54,17 +46,42 @@ class AuthRepository {
     return localUser;
   }
 
-  Future<UserModel?> findByEmail(
-    String email,
-  ) {
+  Future<UserModel?> restoreSession() async {
+    final firebaseUser =
+        _firebaseAuthService.currentFirebaseUser;
+
+    if (firebaseUser == null || firebaseUser.email == null) {
+      return null;
+    }
+
+    UserModel? localUser = await _userDao.findByEmail(
+      firebaseUser.email!,
+    );
+
+    if (localUser == null) {
+      localUser = UserModel(
+        name: firebaseUser.email!.split('@').first,
+        email: firebaseUser.email!,
+        password: '',
+      );
+
+      await _userDao.insertUser(localUser);
+
+      localUser = await _userDao.findByEmail(
+        firebaseUser.email!,
+      );
+    }
+
+    return localUser;
+  }
+
+  Future<UserModel?> findByEmail(String email) {
     return _userDao.findByEmail(
       email.trim(),
     );
   }
 
-  Future<int> register(
-    UserModel user,
-  ) async {
+  Future<int> register(UserModel user) async {
     final credential =
         await _firebaseAuthService.register(
       email: user.email,
@@ -80,9 +97,7 @@ class AuthRepository {
       );
     }
 
-    return _userDao.insertUser(
-      user,
-    );
+    return _userDao.insertUser(user);
   }
 
   Future<void> logout() {

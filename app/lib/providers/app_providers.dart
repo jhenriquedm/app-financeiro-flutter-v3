@@ -7,18 +7,29 @@ import '../data/transaction_dao.dart';
 import '../data/user_dao.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/market_service.dart';
 import '../services/news_service.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/dashboard_viewmodel.dart';
+import '../viewmodels/market_viewmodel.dart';
 import '../viewmodels/news_viewmodel.dart';
+
+/// ===============================
+/// DAO Providers
+/// ===============================
 
 final userDaoProvider = Provider<UserDao>((ref) {
   return UserDao();
 });
 
-final transactionDaoProvider = Provider<TransactionDao>((ref) {
+final transactionDaoProvider =
+    Provider<TransactionDao>((ref) {
   return TransactionDao();
 });
+
+/// ===============================
+/// Services Providers
+/// ===============================
 
 final firebaseAuthServiceProvider =
     Provider<FirebaseAuthService>((ref) {
@@ -35,14 +46,27 @@ final newsServiceProvider =
   return NewsService();
 });
 
+final marketServiceProvider =
+    Provider<MarketService>((ref) {
+  return MarketService();
+});
+
+/// ===============================
+/// Repository Providers
+/// ===============================
+
 final authRepositoryProvider =
     Provider<AuthRepository>((ref) {
   return AuthRepository(
     userDao: ref.read(userDaoProvider),
     firebaseAuthService:
-        ref.read(firebaseAuthServiceProvider),
+        ref.read(
+      firebaseAuthServiceProvider,
+    ),
     firestoreService:
-        ref.read(firestoreServiceProvider),
+        ref.read(
+      firestoreServiceProvider,
+    ),
   );
 });
 
@@ -52,37 +76,67 @@ final transactionRepositoryProvider =
     transactionDao:
         ref.read(transactionDaoProvider),
     firebaseAuthService:
-        ref.read(firebaseAuthServiceProvider),
+        ref.read(
+      firebaseAuthServiceProvider,
+    ),
     firestoreService:
-        ref.read(firestoreServiceProvider),
+        ref.read(
+      firestoreServiceProvider,
+    ),
   );
 });
+
+/// ===============================
+/// ViewModel Providers
+/// ===============================
 
 final authProvider =
     ChangeNotifierProvider<AuthViewModel>(
   (ref) {
     return AuthViewModel(
       authRepository:
-          ref.read(authRepositoryProvider),
+          ref.read(
+        authRepositoryProvider,
+      ),
     );
   },
 );
 
 final dashboardProvider =
-    ChangeNotifierProvider<DashboardViewModel>(
+    ChangeNotifierProvider<
+        DashboardViewModel>(
   (ref) {
     return DashboardViewModel(
       transactionRepository:
-          ref.read(transactionRepositoryProvider),
+          ref.read(
+        transactionRepositoryProvider,
+      ),
     );
   },
 );
 
 final newsProvider =
-    ChangeNotifierProvider<NewsViewModel>(
+    ChangeNotifierProvider<
+        NewsViewModel>(
   (ref) {
     return NewsViewModel(
-      newsService: ref.read(newsServiceProvider),
+      newsService:
+          ref.read(
+        newsServiceProvider,
+      ),
+    );
+  },
+);
+
+final marketProvider =
+    ChangeNotifierProvider<
+        MarketViewModel>(
+  (ref) {
+    return MarketViewModel(
+      marketService:
+          ref.read(
+        marketServiceProvider,
+      ),
     );
   },
 );
