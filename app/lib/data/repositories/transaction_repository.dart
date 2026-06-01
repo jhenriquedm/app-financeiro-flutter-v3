@@ -52,12 +52,26 @@ class TransactionRepository {
       return [];
     }
 
-    final localTransactions =
-        await _transactionDao.getTransactionsByUser(uid);
+    try {
+      final remoteTransactions =
+          await _firestoreService.getTransactions(uid: uid);
 
-    _syncRemoteTransactions(uid);
+      for (final transaction in remoteTransactions) {
+        if (transaction.id != null) {
+          final transactionWithUser =
+              transaction.copyWith(userId: uid);
 
-    return localTransactions;
+          await _transactionDao.upsertTransaction(
+            transactionWithUser,
+          );
+        }
+      }
+    } catch (_) {
+      // Se estiver offline ou o Firestore falhar,
+      // usa os dados locais do SQLite.
+    }
+
+    return _transactionDao.getTransactionsByUser(uid);
   }
 
   Future<int> updateTransaction(
@@ -124,26 +138,6 @@ class TransactionRepository {
       );
     } catch (_) {
       // Offline: remove localmente e ignora falha remota temporária.
-    }
-  }
-
-  Future<void> _syncRemoteTransactions(String uid) async {
-    try {
-      final remoteTransactions =
-          await _firestoreService.getTransactions(uid: uid);
-
-      for (final transaction in remoteTransactions) {
-        if (transaction.id != null) {
-          final transactionWithUser =
-              transaction.copyWith(userId: uid);
-
-          await _transactionDao.upsertTransaction(
-            transactionWithUser,
-          );
-        }
-      }
-    } catch (_) {
-      // Offline: usa apenas SQLite.
     }
   }
 }

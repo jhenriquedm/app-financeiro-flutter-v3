@@ -45,32 +45,51 @@ class DashboardViewModel extends ChangeNotifier {
     _setLoading(true);
 
     try {
-      _transactions = await _transactionRepository.getTransactions();
+      _transactions =
+          await _transactionRepository.getTransactions();
+
       _errorMessage = null;
-    } catch (error) {
+    } catch (_) {
       _errorMessage = 'Erro ao carregar transações';
     }
 
     _setLoading(false);
   }
 
-  Future<void> addTransaction(TransactionModel transaction) async {
-    await _transactionRepository.addTransaction(transaction);
+  Future<void> addTransaction(
+    TransactionModel transaction,
+  ) async {
+    await _transactionRepository.addTransaction(
+      transaction,
+    );
+
     await loadTransactions();
   }
 
-  Future<void> updateTransaction(TransactionModel transaction) async {
+  Future<void> updateTransaction(
+    TransactionModel transaction,
+  ) async {
     if (transaction.id == null) {
       return;
     }
 
-    await _transactionRepository.updateTransaction(transaction);
+    await _transactionRepository.updateTransaction(
+      transaction,
+    );
+
     await loadTransactions();
   }
 
   Future<void> deleteTransaction(int id) async {
     await _transactionRepository.deleteTransaction(id);
+
     await loadTransactions();
+  }
+
+  void clearTransactions() {
+    _transactions = [];
+    _errorMessage = null;
+    notifyListeners();
   }
 
   void _setLoading(bool value) {
