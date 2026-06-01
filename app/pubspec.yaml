@@ -1,5 +1,5 @@
 name: app
-description: "Aplicativo de controle financeiro desenvolvido em Flutter com MVVM, Provider e SQLite."
+description: "Aplicativo de controle financeiro desenvolvido em Flutter com MVVM, Riverpod, SQLite, Firebase e APIs externas."
 
 publish_to: 'none'
 
@@ -21,9 +21,24 @@ dependencies:
 
   # Máscara monetária
   flutter_multi_formatter: ^2.13.7
+
+  # Gerenciamento de estado
   flutter_riverpod: ^3.3.1
+
+  # Firebase
   firebase_core: ^4.9.0
   firebase_auth: ^6.5.1
+  cloud_firestore: ^6.4.1
+
+  # APIs externas
+  http: ^1.6.0
+
+  # UX/UI
+  shimmer: ^3.0.0
+
+  # Ícone e splash
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
 
 dev_dependencies:
   flutter_test:
@@ -31,5 +46,27 @@ dev_dependencies:
 
   flutter_lints: ^6.0.0
 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#5B4AE6"
+  adaptive_icon_foreground: "assets/icons/app_icon.png"
+
+flutter_native_splash:
+  color: "#5B4AE6"
+  image: assets/splash/splash_logo.png
+  android: true
+  ios: true
+  web: true
+
+  android_12:
+    image: assets/splash/splash_logo.png
+    color: "#5B4AE6"
+
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/icons/
+    - assets/splash/

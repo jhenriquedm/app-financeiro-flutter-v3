@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/app_providers.dart';
 
 import '../../models/transaction_model.dart';
+import '../../providers/app_providers.dart';
 import '../../utils/app_colors.dart';
-import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/dashboard_viewmodel.dart';
+import '../../viewmodels/news_viewmodel.dart';
 import '../../widgets/app_screen_container.dart';
 import '../analysis/analysis_view.dart';
 import '../auth/login_view.dart';
+import '../../widgets/app_skeleton_card.dart';
+import '../../viewmodels/market_viewmodel.dart';
 
 String _formatCurrencyBr(double value) {
   return NumberFormat.currency(
@@ -58,8 +60,7 @@ class DashboardView extends ConsumerStatefulWidget {
   ConsumerState<DashboardView> createState() => _DashboardViewState();
 }
 
-class _DashboardViewState
-    extends ConsumerState<DashboardView> {
+class _DashboardViewState extends ConsumerState<DashboardView> {
   bool _showTransactionForm = false;
   TransactionModel? _editingTransaction;
 
@@ -67,13 +68,17 @@ class _DashboardViewState
   void initState() {
     super.initState();
 
-    Future.microtask(() {
-  ref.read(dashboardProvider).loadTransactions();
-  });
+    Future.microtask(() async {
+      await ref.read(dashboardProvider).loadTransactions();
+      await ref.read(newsProvider).loadNews();
+      await ref.read(marketProvider).loadQuotes();
+    });
   }
 
   Future<void> _logout() async {
-    ref.read(authProvider).logout();
+    await ref.read(authProvider).logout();
+
+    if (!mounted) return;
 
     Navigator.pushReplacement(
       context,
@@ -96,6 +101,80 @@ class _DashboardViewState
       _showTransactionForm = false;
     });
   }
+
+void _showSuccessMessage(String message) {
+  final overlay = Overlay.of(context);
+
+  late OverlayEntry overlayEntry;
+
+  overlayEntry = OverlayEntry(
+    builder: (context) {
+      return Positioned(
+        bottom: 95,
+        left: 0,
+        right: 0,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 300,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 350),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.18),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  overlay.insert(overlayEntry);
+
+Future.delayed(
+  const Duration(seconds: 2),
+  () {
+    if (overlayEntry.mounted) {
+      overlayEntry.remove();
+    }
+  },
+);
+}
 
   Future<void> _confirmDelete(TransactionModel transaction) async {
     final confirm = await showDialog<bool>(
@@ -131,9 +210,11 @@ class _DashboardViewState
     );
 
     if (confirm == true && transaction.id != null) {
-      await ref
-          .read(dashboardProvider)
-          .deleteTransaction(transaction.id!);
+      await ref.read(dashboardProvider).deleteTransaction(transaction.id!);
+
+      if (!mounted) return;
+
+      _showSuccessMessage('Transação excluída com sucesso.');
     }
   }
 
@@ -141,6 +222,8 @@ class _DashboardViewState
   Widget build(BuildContext context) {
     final authVm = ref.watch(authProvider);
     final dashboardVm = ref.watch(dashboardProvider);
+    final newsVm = ref.watch(newsProvider);
+    final marketVm = ref.watch(marketProvider);
 
     return Scaffold(
       body: Container(
@@ -219,6 +302,8 @@ class _DashboardViewState
                               ],
                             ),
                             const SizedBox(height: 14),
+                            _buildMarketSection(marketVm),
+                            const SizedBox(height: 14),
                             _buildChart(dashboardVm),
                             const SizedBox(height: 14),
                             Row(
@@ -245,13 +330,21 @@ class _DashboardViewState
                               ],
                             ),
                             SizedBox(
-                              height: 230,
-                              child: dashboardVm.isLoading
-                                  ? const Center(
-                                      child: CircularProgressIndicator(),
-                                    )
-                                  : _buildTransactionList(dashboardVm),
-                            ),
+  height: dashboardVm.transactions.isEmpty
+      ? 285
+      : 230,
+  child: dashboardVm.isLoading
+      ? const Column(
+          children: [
+            AppSkeletonCard(height: 64),
+            AppSkeletonCard(height: 64),
+            AppSkeletonCard(height: 64),
+          ],
+        )
+      : _buildTransactionList(dashboardVm),
+),
+                            const SizedBox(height: 14),
+                            _buildNewsSection(newsVm),
                             const SizedBox(height: 14),
                           ],
                         ),
@@ -297,6 +390,7 @@ class _DashboardViewState
                       child: _TransactionFormCard(
                         transaction: _editingTransaction,
                         onClose: _closeTransactionForm,
+                        onSuccess: _showSuccessMessage,
                       ),
                     ),
                   ),
@@ -308,77 +402,140 @@ class _DashboardViewState
     );
   }
 
-  Widget _buildBalanceCard(DashboardViewModel vm) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.grey.shade300,
-        ),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Saldo Atual',
-            style: TextStyle(fontSize: 13),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _formatCurrencyBr(vm.balance),
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: vm.balance >= 0 ? Colors.green : Colors.red,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+Widget _buildBalanceCard(DashboardViewModel vm) {
+  final isPositive = vm.balance >= 0;
 
-  Widget _buildSummaryCard(
-    String title,
-    double value,
-    Color color,
-    IconData icon,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.grey.shade300,
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: isPositive
+            ? [Colors.green.shade500, Colors.green.shade800]
+            : [Colors.red.shade500, Colors.red.shade800],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [
+        BoxShadow(
+          color: (isPositive ? Colors.green : Colors.red).withOpacity(0.32),
+          blurRadius: 18,
+          offset: const Offset(0, 8),
         ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 22,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _formatCurrencyBr(value),
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
-              fontSize: 13,
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet,
+                color: Colors.white,
+                size: 26,
+              ),
             ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Saldo Atual',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          _formatCurrencyBr(vm.balance),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
           ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          isPositive
+              ? 'Sua vida financeira está saudável'
+              : 'Atenção: despesas acima das receitas',
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 13,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildSummaryCard(
+  String title,
+  double value,
+  Color color,
+  IconData icon,
+) {
+  return Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          color.withOpacity(0.95),
+          color.withOpacity(0.65),
         ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
-    );
-  }
+      borderRadius: BorderRadius.circular(22),
+      boxShadow: [
+        BoxShadow(
+          color: color.withOpacity(0.28),
+          blurRadius: 12,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          color: Colors.white,
+          size: 24,
+        ),
+        const SizedBox(height: 10),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _formatCurrencyBr(value),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildChart(DashboardViewModel vm) {
     final data = vm.expensesByCategory;
@@ -440,22 +597,335 @@ class _DashboardViewState
       ),
     );
   }
+  
+Widget _buildMarketSection(MarketViewModel vm) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          Colors.indigo.shade500,
+          Colors.blue.shade700,
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(22),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.blue.withOpacity(0.25),
+          blurRadius: 14,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Mercado agora',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Atualizar mercado',
+              onPressed: () {
+                ref.read(marketProvider).loadQuotes();
+              },
+              icon: const Icon(
+                Icons.refresh,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (vm.isLoading)
+          const Column(
+            children: [
+              AppSkeletonCard(height: 54),
+              AppSkeletonCard(height: 54),
+            ],
+          )
+        else if (vm.quotes.isEmpty)
+          const Text(
+            'Não foi possível carregar as cotações agora.',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+            ),
+          )
+        else
+          Column(
+            children: vm.quotes.map((quote) {
+              final isPositive = quote.variation >= 0;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        quote.code == 'BTC'
+                            ? Icons.currency_bitcoin
+                            : Icons.attach_money,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _marketLabel(quote.code),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            quote.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          _formatCurrencyBr(quote.bid),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${isPositive ? '+' : ''}${quote.percentageChange.toStringAsFixed(2)}%',
+                          style: TextStyle(
+                            color: isPositive
+                                ? Colors.greenAccent
+                                : Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+      ],
+    ),
+  );
+}
+
+String _marketLabel(String code) {
+  switch (code) {
+    case 'USD':
+      return 'Dólar';
+    case 'EUR':
+      return 'Euro';
+    case 'BTC':
+      return 'Bitcoin';
+    default:
+      return code;
+  }
+}
+  Widget _buildNewsSection(NewsViewModel vm) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.grey.shade300,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Dicas Financeiras',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Atualizar',
+                onPressed: () {
+                  ref.read(newsProvider).loadNews();
+                },
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (vm.isLoading)
+            const Column(
+              children: [
+                AppSkeletonCard(height: 58),
+                AppSkeletonCard(height: 58),
+                AppSkeletonCard(height: 58),
+              ],
+            )
+          else if (vm.news.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(18),
+                child: Text(
+                  'Nenhuma notícia disponível.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              height: 220,
+              child: ListView.separated(
+                itemCount: vm.news.length > 5 ? 5 : vm.news.length,
+                separatorBuilder: (_, __) => const Divider(),
+                itemBuilder: (context, index) {
+                  final news = vm.news[index];
+
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(
+                      Icons.trending_up,
+                      color: Colors.green,
+                    ),
+                    title: Text(
+                      news.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      news.source.isEmpty ? 'Fonte não informada' : news.source,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildTransactionList(DashboardViewModel vm) {
     if (vm.transactions.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: const Center(
-          child: Text(
-            'Nenhuma transação cadastrada.',
-            textAlign: TextAlign.center,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: Colors.grey.shade300,
           ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet,
+                size: 34,
+                color: Colors.green,
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Nenhuma transação encontrada',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Comece adicionando sua primeira receita ou despesa.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: () {
+                _openTransactionForm();
+              },
+              icon: const Icon(
+                Icons.add,
+                color: Colors.white,
+              ),
+              label: const Text(
+                'Adicionar transação',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -497,6 +967,13 @@ class _DashboardViewState
               overflow: TextOverflow.ellipsis,
             ),
             trailing: PopupMenuButton<String>(
+              tooltip: 'Opções',
+              elevation: 10,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              offset: const Offset(0, 42),
               onSelected: (value) {
                 if (value == 'edit') {
                   _openTransactionForm(transaction: transaction);
@@ -506,14 +983,45 @@ class _DashboardViewState
                   _confirmDelete(transaction);
                 }
               },
-              itemBuilder: (_) => const [
+              itemBuilder: (_) => [
                 PopupMenuItem(
                   value: 'edit',
-                  child: Text('Editar'),
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.edit_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        'Editar',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 PopupMenuItem(
                   value: 'delete',
-                  child: Text('Excluir'),
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.delete_rounded,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        'Excluir',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
               child: Column(
@@ -546,13 +1054,16 @@ class _TransactionFormCard extends ConsumerStatefulWidget {
   const _TransactionFormCard({
     required this.transaction,
     required this.onClose,
+    required this.onSuccess,
   });
 
   final TransactionModel? transaction;
   final VoidCallback onClose;
+  final void Function(String message) onSuccess;
 
   @override
-  ConsumerState<_TransactionFormCard> createState() => _TransactionFormCardState();
+  ConsumerState<_TransactionFormCard> createState() =>
+      _TransactionFormCardState();
 }
 
 class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
@@ -619,13 +1130,19 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
 
     if (widget.transaction == null) {
       await dashboardVm.addTransaction(newTransaction);
+
+      if (!mounted) return;
+
+      widget.onClose();
+      widget.onSuccess('Transação adicionada com sucesso.');
     } else {
       await dashboardVm.updateTransaction(newTransaction);
+
+      if (!mounted) return;
+
+      widget.onClose();
+      widget.onSuccess('Transação atualizada com sucesso.');
     }
-
-    if (!mounted) return;
-
-    widget.onClose();
   }
 
   @override
@@ -639,13 +1156,23 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
         ),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(26),
+          gradient: LinearGradient(
+            colors: [
+              Colors.white,
+              Colors.grey.shade100,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.9),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.18),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+              color: Colors.black.withOpacity(0.22),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -682,9 +1209,31 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
                   controller: _titleController,
                   decoration: InputDecoration(
                     labelText: 'Título',
-                    prefixIcon: const Icon(Icons.description),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    prefixIcon: const Icon(
+                      Icons.description,
+                      color: AppColors.primary,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding:
+                        const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 18,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.circular(18),
+                      borderSide: BorderSide(
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.circular(18),
+                      borderSide: BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                   validator: (value) {
@@ -703,9 +1252,28 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
                   ],
                   decoration: InputDecoration(
                     labelText: 'Valor',
-                    prefixIcon: const Icon(Icons.attach_money),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    prefixIcon: const Icon(
+                      Icons.attach_money,
+                      color: AppColors.primary,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 18,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide(
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                   validator: (value) {
@@ -723,41 +1291,227 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
                   },
                 ),
                 const SizedBox(height: 14),
-                DropdownButtonFormField<TransactionType>(
-                  value: _selectedType,
-                  decoration: InputDecoration(
-                    labelText: 'Tipo',
-                    prefixIcon: const Icon(Icons.swap_vert),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                Column(
+  crossAxisAlignment:
+      CrossAxisAlignment.start,
+  children: [
+    const Padding(
+      padding: EdgeInsets.only(
+        left: 4,
+        bottom: 8,
+      ),
+      child: Text(
+        'Tipo da transação',
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+      ),
+    ),
+    Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedType =
+                    TransactionType.income;
+              });
+            },
+            child: AnimatedContainer(
+              duration:
+                  const Duration(
+                milliseconds: 250,
+              ),
+              padding:
+                  const EdgeInsets.symmetric(
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: _selectedType ==
+                        TransactionType
+                            .income
+                    ? Colors.green
+                    : Colors
+                        .grey.shade200,
+                borderRadius:
+                    BorderRadius.circular(
+                  14,
+                ),
+                boxShadow:
+                    _selectedType ==
+                            TransactionType
+                                .income
+                        ? [
+                            BoxShadow(
+                              color: Colors
+                                  .green
+                                  .withOpacity(
+                                0.22,
+                              ),
+                              blurRadius:
+                                  8,
+                              offset:
+                                  const Offset(
+                                0,
+                                3,
+                              ),
+                            ),
+                          ]
+                        : [],
+              ),
+              child: Column(
+                mainAxisSize:
+                    MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons
+                        .arrow_upward_rounded,
+                    size: 18,
+                    color: _selectedType ==
+                            TransactionType
+                                .income
+                        ? Colors.white
+                        : Colors.black54,
+                  ),
+                  const SizedBox(
+                    height: 2,
+                  ),
+                  Text(
+                    'Receita',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _selectedType ==
+                              TransactionType
+                                  .income
+                          ? Colors.white
+                          : Colors.black87,
+                      fontWeight:
+                          FontWeight.bold,
                     ),
                   ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: TransactionType.income,
-                      child: Text('Receita'),
-                    ),
-                    DropdownMenuItem(
-                      value: TransactionType.expense,
-                      child: Text('Despesa'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) return;
-
-                    setState(() {
-                      _selectedType = value;
-                    });
-                  },
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedType =
+                    TransactionType.expense;
+              });
+            },
+            child: AnimatedContainer(
+              duration:
+                  const Duration(
+                milliseconds: 250,
+              ),
+              padding:
+                  const EdgeInsets.symmetric(
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: _selectedType ==
+                        TransactionType
+                            .expense
+                    ? Colors.red
+                    : Colors
+                        .grey.shade200,
+                borderRadius:
+                    BorderRadius.circular(
+                  14,
                 ),
+                boxShadow:
+                    _selectedType ==
+                            TransactionType
+                                .expense
+                        ? [
+                            BoxShadow(
+                              color: Colors
+                                  .red
+                                  .withOpacity(
+                                0.22,
+                              ),
+                              blurRadius:
+                                  8,
+                              offset:
+                                  const Offset(
+                                0,
+                                3,
+                              ),
+                            ),
+                          ]
+                        : [],
+              ),
+              child: Column(
+                mainAxisSize:
+                    MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons
+                        .arrow_downward_rounded,
+                    size: 18,
+                    color: _selectedType ==
+                            TransactionType
+                                .expense
+                        ? Colors.white
+                        : Colors.black54,
+                  ),
+                  const SizedBox(
+                    height: 2,
+                  ),
+                  Text(
+                    'Despesa',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _selectedType ==
+                              TransactionType
+                                  .expense
+                          ? Colors.white
+                          : Colors.black87,
+                      fontWeight:
+                          FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  ],
+),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
                   value: _category,
                   decoration: InputDecoration(
                     labelText: 'Categoria',
-                    prefixIcon: const Icon(Icons.category),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    prefixIcon: const Icon(
+                      Icons.category,
+                      color: AppColors.primary,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 18,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide(
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                   items: const [
@@ -798,19 +1552,42 @@ class _TransactionFormCardState extends ConsumerState<_TransactionFormCard> {
                 SizedBox(
                   width: double.infinity,
                   height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _saveTransaction,
+                    child: Container(
+                      width: double.infinity,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            Colors.blue.shade700,
+                          ],
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary
+                                .withOpacity(0.28),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                    ),
-                    onPressed: _saveTransaction,
-                    child: Text(
-                      widget.transaction == null ? 'Adicionar' : 'Salvar',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
+                      child: Center(
+                        child: Text(
+                          widget.transaction == null
+                              ? 'Adicionar'
+                              : 'Salvar',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight:
+                                FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
