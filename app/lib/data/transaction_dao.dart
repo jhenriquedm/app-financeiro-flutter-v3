@@ -4,7 +4,9 @@ import '../models/transaction_model.dart';
 import 'database_helper.dart';
 
 class TransactionDao {
-  Future<int> insertTransaction(TransactionModel transaction) async {
+  Future<int> insertTransaction(
+    TransactionModel transaction,
+  ) async {
     final db = await DatabaseHelper.instance.database;
 
     return db.insert(
@@ -13,7 +15,9 @@ class TransactionDao {
     );
   }
 
-  Future<int> upsertTransaction(TransactionModel transaction) async {
+  Future<int> upsertTransaction(
+    TransactionModel transaction,
+  ) async {
     final db = await DatabaseHelper.instance.database;
 
     return db.insert(
@@ -23,35 +27,52 @@ class TransactionDao {
     );
   }
 
-  Future<List<TransactionModel>> getTransactions() async {
+  Future<List<TransactionModel>> getTransactionsByUser(
+    String userId,
+  ) async {
     final db = await DatabaseHelper.instance.database;
 
     final result = await db.query(
       'transactions',
+      where: 'userId = ?',
+      whereArgs: [userId],
       orderBy: 'date DESC',
     );
 
-    return result.map((map) => TransactionModel.fromMap(map)).toList();
+    return result
+        .map((map) => TransactionModel.fromMap(map))
+        .toList();
   }
 
-  Future<int> updateTransaction(TransactionModel transaction) async {
+  Future<int> updateTransaction(
+    TransactionModel transaction,
+  ) async {
     final db = await DatabaseHelper.instance.database;
 
     return db.update(
       'transactions',
       transaction.toMap(),
-      where: 'id = ?',
-      whereArgs: [transaction.id],
+      where: 'id = ? AND userId = ?',
+      whereArgs: [
+        transaction.id,
+        transaction.userId,
+      ],
     );
   }
 
-  Future<int> deleteTransaction(int id) async {
+  Future<int> deleteTransaction({
+    required int id,
+    required String userId,
+  }) async {
     final db = await DatabaseHelper.instance.database;
 
     return db.delete(
       'transactions',
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'id = ? AND userId = ?',
+      whereArgs: [
+        id,
+        userId,
+      ],
     );
   }
 }

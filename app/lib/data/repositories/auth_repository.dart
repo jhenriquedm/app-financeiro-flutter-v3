@@ -25,21 +25,40 @@ class AuthRepository {
       password: password,
     );
 
+    final firebaseUser =
+        _firebaseAuthService.currentFirebaseUser;
+
     UserModel? localUser = await _userDao.findByEmail(
       email.trim(),
     );
 
     if (localUser == null) {
+      UserModel? firestoreUser;
+
+      if (firebaseUser != null) {
+        try {
+          firestoreUser = await _firestoreService.getUser(
+            uid: firebaseUser.uid,
+          );
+        } catch (_) {
+          firestoreUser = null;
+        }
+      }
+
       localUser = UserModel(
-        name: email.split('@').first,
-        email: email.trim(),
+        name: firestoreUser?.name.isNotEmpty == true
+            ? firestoreUser!.name
+            : email.split('@').first,
+        email: firestoreUser?.email.isNotEmpty == true
+            ? firestoreUser!.email
+            : email.trim(),
         password: password.trim(),
       );
 
       await _userDao.insertUser(localUser);
 
       localUser = await _userDao.findByEmail(
-        email.trim(),
+        localUser.email,
       );
     }
 
@@ -59,16 +78,30 @@ class AuthRepository {
     );
 
     if (localUser == null) {
+      UserModel? firestoreUser;
+
+      try {
+        firestoreUser = await _firestoreService.getUser(
+          uid: firebaseUser.uid,
+        );
+      } catch (_) {
+        firestoreUser = null;
+      }
+
       localUser = UserModel(
-        name: firebaseUser.email!.split('@').first,
-        email: firebaseUser.email!,
+        name: firestoreUser?.name.isNotEmpty == true
+            ? firestoreUser!.name
+            : firebaseUser.email!.split('@').first,
+        email: firestoreUser?.email.isNotEmpty == true
+            ? firestoreUser!.email
+            : firebaseUser.email!,
         password: '',
       );
 
       await _userDao.insertUser(localUser);
 
       localUser = await _userDao.findByEmail(
-        firebaseUser.email!,
+        localUser.email,
       );
     }
 

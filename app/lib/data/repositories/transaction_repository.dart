@@ -16,51 +16,85 @@ class TransactionRepository {
         _firebaseAuthService = firebaseAuthService,
         _firestoreService = firestoreService;
 
-  Future<int> addTransaction(TransactionModel transaction) async {
-    final localId = await _transactionDao.insertTransaction(transaction);
+  String? get _uid =>
+      _firebaseAuthService.currentFirebaseUser?.uid;
 
-    final savedTransaction = transaction.copyWith(id: localId);
-    final uid = _firebaseAuthService.currentFirebaseUser?.uid;
+  Future<int> addTransaction(
+    TransactionModel transaction,
+  ) async {
+    final uid = _uid;
 
-    if (uid != null) {
-      _syncSaveTransaction(uid, savedTransaction);
+    if (uid == null) {
+      throw Exception('Usuário não autenticado.');
     }
+
+    final transactionWithUser = transaction.copyWith(
+      userId: uid,
+    );
+
+    final localId = await _transactionDao.insertTransaction(
+      transactionWithUser,
+    );
+
+    final savedTransaction = transactionWithUser.copyWith(
+      id: localId,
+    );
+
+    _syncSaveTransaction(uid, savedTransaction);
 
     return localId;
   }
 
   Future<List<TransactionModel>> getTransactions() async {
-    final localTransactions = await _transactionDao.getTransactions();
+    final uid = _uid;
 
-    final uid = _firebaseAuthService.currentFirebaseUser?.uid;
-
-    if (uid != null) {
-      _syncRemoteTransactions(uid);
+    if (uid == null) {
+      return [];
     }
+
+    final localTransactions =
+        await _transactionDao.getTransactionsByUser(uid);
+
+    _syncRemoteTransactions(uid);
 
     return localTransactions;
   }
 
-  Future<int> updateTransaction(TransactionModel transaction) async {
-    final result = await _transactionDao.updateTransaction(transaction);
+  Future<int> updateTransaction(
+    TransactionModel transaction,
+  ) async {
+    final uid = _uid;
 
-    final uid = _firebaseAuthService.currentFirebaseUser?.uid;
-
-    if (uid != null && transaction.id != null) {
-      _syncSaveTransaction(uid, transaction);
+    if (uid == null || transaction.id == null) {
+      throw Exception('Usuário não autenticado.');
     }
+
+    final transactionWithUser = transaction.copyWith(
+      userId: uid,
+    );
+
+    final result = await _transactionDao.updateTransaction(
+      transactionWithUser,
+    );
+
+    _syncSaveTransaction(uid, transactionWithUser);
 
     return result;
   }
 
   Future<int> deleteTransaction(int id) async {
-    final result = await _transactionDao.deleteTransaction(id);
+    final uid = _uid;
 
-    final uid = _firebaseAuthService.currentFirebaseUser?.uid;
-
-    if (uid != null) {
-      _syncDeleteTransaction(uid, id);
+    if (uid == null) {
+      throw Exception('Usuário não autenticado.');
     }
+
+    final result = await _transactionDao.deleteTransaction(
+      id: id,
+      userId: uid,
+    );
+
+    _syncDeleteTransaction(uid, id);
 
     return result;
   }
@@ -76,7 +110,6 @@ class TransactionRepository {
       );
     } catch (_) {
       // Offline: mantém salvo no SQLite.
-      // A sincronização remota pode ser feita quando voltar online.
     }
   }
 
@@ -101,7 +134,12 @@ class TransactionRepository {
 
       for (final transaction in remoteTransactions) {
         if (transaction.id != null) {
-          await _transactionDao.upsertTransaction(transaction);
+          final transactionWithUser =
+              transaction.copyWith(userId: uid);
+
+          await _transactionDao.upsertTransaction(
+            transactionWithUser,
+          );
         }
       }
     } catch (_) {

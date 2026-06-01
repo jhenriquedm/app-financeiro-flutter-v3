@@ -21,6 +21,24 @@ class FirestoreService {
     });
   }
 
+  Future<UserModel?> getUser({
+    required String uid,
+  }) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+
+    if (!doc.exists || doc.data() == null) {
+      return null;
+    }
+
+    final data = doc.data()!;
+
+    return UserModel(
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      password: '',
+    );
+  }
+
   Future<void> saveTransaction({
     required String uid,
     required TransactionModel transaction,
@@ -58,6 +76,7 @@ class FirestoreService {
 
       return TransactionModel(
         id: data['localId'] as int?,
+        userId: uid,
         title: data['title'] ?? '',
         amount: (data['amount'] as num).toDouble(),
         date: timestamp is Timestamp

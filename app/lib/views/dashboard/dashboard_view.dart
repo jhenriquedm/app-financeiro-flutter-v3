@@ -121,7 +121,7 @@ void _showSuccessMessage(String message) {
             child: Material(
               color: Colors.transparent,
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
+                duration: const Duration(milliseconds: 350),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
