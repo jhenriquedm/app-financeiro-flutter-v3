@@ -10,30 +10,44 @@ class AppScreenContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 360,
-          maxHeight: 700,
-        ),
-        child: Container(
-          width: 360,
-          height: 700,
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(26),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.18),
-                blurRadius: 24,
-                offset: const Offset(0, 12),
-              ),
-            ],
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    final isTabletOrDesktop = screenWidth >= 700;
+
+    return SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: isTabletOrDesktop ? 520 : double.infinity,
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(26),
-            child: child,
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            margin: EdgeInsets.symmetric(
+              horizontal: isTabletOrDesktop ? 24 : 0,
+              vertical: isTabletOrDesktop ? 24 : 0,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(
+                isTabletOrDesktop ? 28 : 0,
+              ),
+              boxShadow: isTabletOrDesktop
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.14),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ]
+                  : [],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(
+                isTabletOrDesktop ? 28 : 0,
+              ),
+              child: child,
+            ),
           ),
         ),
       ),
