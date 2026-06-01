@@ -1,163 +1,298 @@
-# 💰 Money Wise - App Financeiro Flutter
+# 💰 Money Wise
 
-Aplicativo de controle financeiro desenvolvido em **Flutter**, com foco em gerenciamento de receitas e despesas, persistência local de dados e aplicação do padrão arquitetural **MVVM (Model-View-ViewModel)**.
-
-O projeto evoluiu de um protótipo de interface para uma aplicação funcional, utilizando **SQLite**, **Provider** e **Flutter Web**, permitindo cadastro de usuários, autenticação local e gerenciamento financeiro reativo.
+Aplicativo mobile de **controle financeiro pessoal**, desenvolvido em **Flutter**, utilizando **arquitetura MVVM + Riverpod**, persistência local com **SQLite**, autenticação e sincronização em nuvem com **Firebase Authentication** e **Cloud Firestore**, além de consumo de **APIs externas** para exibição de informações do mercado financeiro.
 
 ---
 
-# 🚀 Funcionalidades
+## 📌 Sobre o Projeto
 
-### ✅ Autenticação de Usuário
+O **Money Wise** foi desenvolvido como projeto acadêmico da disciplina de **Desenvolvimento Mobile**, com o objetivo de aplicar conceitos modernos de desenvolvimento de aplicações móveis utilizando Flutter.
 
-* Cadastro de usuário com:
+O aplicativo permite ao usuário realizar o gerenciamento das suas finanças pessoais, registrando receitas e despesas, acompanhando saldo financeiro, analisando gastos por categoria e acessando informações do mercado financeiro em tempo real.
 
-  * Nome
-  * E-mail
-  * Senha
-* Login funcional conectado ao SQLite
-* Persistência do usuário cadastrado
+Além disso, o projeto implementa um modelo **offline-first**, permitindo o funcionamento mesmo sem conexão com a internet.
 
-### ✅ Controle Financeiro
+---
 
-* Cadastro de transações
+## 🎯 Objetivo do Projeto
+
+Desenvolver um aplicativo mobile moderno, funcional e responsivo, aplicando boas práticas de arquitetura de software, gerenciamento de estado, persistência de dados e integração com serviços em nuvem.
+
+---
+
+## ✨ Funcionalidades
+
+### 🔐 Autenticação
+
+* Cadastro de usuários
+* Login com e-mail e senha
+* Logout
+* Persistência de sessão (`AuthGate`)
+* Recuperação automática de sessão
+* Autenticação via Firebase Authentication
+
+---
+
+### 💵 Controle Financeiro
+
+* Cadastro de receitas
+* Cadastro de despesas
 * Edição de transações
 * Exclusão de transações
-* Listagem automática
+* Histórico de movimentações
+* Saldo financeiro atualizado automaticamente
+* Controle financeiro por categoria
 
-### ✅ Dashboard Financeiro
+---
 
-* Saldo atualizado automaticamente
+### 📊 Dashboard Inteligente
+
+* Saudação personalizada com nome do usuário
+* Saldo atual
 * Total de receitas
 * Total de despesas
-* Resumo financeiro visual
+* Histórico recente de transações
+* Cards financeiros modernos
+* Loading visual com **Shimmer Effect**
+* Snackbars personalizadas
 
-### ✅ Análise Financeira
+---
 
-* Percentual de despesas por categoria
+### 📈 Tela de Análises Financeiras
+
+* Visualização de gastos por categoria
 * Indicadores financeiros
-* Resumo consolidado das despesas
-
-### ✅ Recursos Extras
-
-* Máscara monetária brasileira (`R$ 0,00`)
-* Persistência local com SQLite
-* Atualização reativa utilizando Provider
-* Modal interno para adicionar/editar transações
-* Scroll vertical responsivo
-* Validação de formulários
+* Barras de progresso
+* Resumo financeiro completo
 
 ---
 
-# 🏗 Arquitetura do Projeto
+### 🌎 Mercado Financeiro
 
-O projeto foi estruturado utilizando **MVVM (Model-View-ViewModel)**:
+Integração com API externa para exibição de:
 
-```txt
-Model → Estrutura dos dados
-View → Interface do usuário
-ViewModel → Lógica de negócio e gerenciamento de estado
-```
-
-Tecnologias utilizadas:
-
-* **Flutter**
-* **Dart**
-* **SQLite (sqflite)**
-* **Provider**
-* **MVVM**
-* **Flutter Web**
-* **GitHub Codespaces**
+* Cotação do dólar
+* Informações do mercado financeiro
+* Atualizações em tempo real
 
 ---
 
-# 🚀 Como executar o projeto (PASSO A PASSO COMPLETO)
+### 💡 Dicas Financeiras
 
-## 🌐 Executar pelo GitHub Codespaces
+Sistema de mensagens financeiras inteligentes exibidas no Dashboard, com:
 
-> Não é necessário instalar nada localmente no computador.
-
----
-
-## 🔹 Passo 1: Criar o Codespace
-
-1. Clique no botão verde **"Code"**
-2. Vá até a aba **"Codespaces"**
-3. Clique em:
-
-```txt
-Create codespace on main
-```
-
-⏳ Aguarde o ambiente abrir (pode levar alguns minutos).
+* Educação financeira
+* Organização financeira
+* Economia e planejamento
+* Reserva de emergência
+* Consumo consciente
 
 ---
 
-## 🔹 Passo 2: Abrir o Terminal
+### ☁️ Sincronização em Nuvem
 
-No Codespaces:
+O aplicativo sincroniza automaticamente os dados do usuário utilizando **Cloud Firestore**.
 
-```txt
-Terminal → New Terminal
+Fluxo de sincronização:
+
+```text
+Login
+↓
+Busca transações no Firestore
+↓
+Sincroniza com SQLite
+↓
+Libera Dashboard
 ```
 
 ---
 
-## 🔹 Passo 3: Instalar o Flutter
+### 📶 Funcionamento Offline (Offline First)
 
-No terminal execute:
+Mesmo sem internet, o aplicativo continua funcionando normalmente.
+
+Fluxo offline:
+
+```text
+Sem internet
+↓
+SQLite local
+↓
+Dados continuam disponíveis
+```
+
+Quando a internet retorna:
+
+```text
+Firestore ↔ SQLite
+Sincronização automática
+```
+
+---
+
+### 👤 Multiusuário
+
+O sistema possui isolamento de dados por usuário.
+
+Cada usuário possui:
+
+* Transações independentes
+* Dashboard individual
+* Dados sincronizados de forma isolada
+
+Exemplo:
+
+```text
+Usuário A
+→ vê apenas seus dados
+
+Usuário B
+→ vê apenas seus dados
+```
+
+---
+
+## 🏗️ Arquitetura Utilizada
+
+O projeto foi desenvolvido utilizando:
+
+### MVVM (Model-View-ViewModel)
+
+Separação de responsabilidades:
+
+### Model
+
+Representação dos dados da aplicação.
+
+### View
+
+Responsável pela interface do usuário.
+
+### ViewModel
+
+Gerencia regras de negócio e estado da aplicação.
+
+### Repository
+
+Camada intermediária entre serviços e persistência.
+
+### Services
+
+Integração com Firebase e APIs externas.
+
+---
+
+## 🧱 Estrutura do Projeto
+
+```text
+lib/
+│
+├── data/
+│   ├── repositories/
+│   ├── database_helper.dart
+│   ├── transaction_dao.dart
+│   └── user_dao.dart
+│
+├── models/
+│
+├── services/
+│   ├── firebase_auth_service.dart
+│   ├── firestore_service.dart
+│   ├── market_service.dart
+│   └── news_service.dart
+│
+├── viewmodels/
+│
+├── views/
+│   ├── auth/
+│   ├── dashboard/
+│   └── analysis/
+│
+├── widgets/
+│
+└── utils/
+```
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+### Framework
+
+* Flutter
+
+### Linguagem
+
+* Dart
+
+### Arquitetura
+
+* MVVM
+
+### Gerenciamento de Estado
+
+* Riverpod
+
+### Banco Local
+
+* SQLite
+
+### Banco em Nuvem
+
+* Cloud Firestore
+
+### Autenticação
+
+* Firebase Authentication
+
+### APIs Externas
+
+* HTTP API
+
+### UX/UI
+
+* Shimmer
+* Custom Snackbars
+* Splash Screen
+* Ícone personalizado
+
+---
+
+## 📱 Responsividade
+
+O aplicativo foi desenvolvido para adaptação em diferentes tamanhos de tela:
+
+* Smartphones
+* Tablets
+* Web
+
+Com layout responsivo e adaptável.
+
+---
+
+## 🎨 Interface
+
+O aplicativo possui interface moderna com:
+
+* Gradientes
+* Cards premium
+* Sombras suaves
+* Componentes responsivos
+* Experiência visual moderna
+
+---
+
+## 🚀 Como Executar o Projeto
+
+### 1. Clonar repositório
 
 ```bash
-git clone https://github.com/flutter/flutter.git -b stable ~/flutter
-```
-
-Depois:
-
-```bash
-echo 'export PATH=$HOME/flutter/bin:$PATH' >> ~/.bashrc
-```
-
-Em seguida:
-
-```bash
-source ~/.bashrc
+git clone URL_DO_REPOSITORIO
 ```
 
 ---
 
-## 🔹 Passo 4: Verificar Instalação
-
-Execute:
-
-```bash
-flutter doctor
-```
-
-Se aparecer:
-
-```txt
-[✓] Flutter
-```
-
-A instalação está correta.
-
-> Alguns avisos podem aparecer e podem ser ignorados no Codespaces.
-
----
-
-## 🔹 Passo 5: Habilitar Flutter Web
-
-Execute:
-
-```bash
-flutter config --enable-web
-```
-
----
-
-## 🔹 Passo 6: Acessar o Projeto
-
-Entre na pasta do app:
+### 2. Entrar na pasta
 
 ```bash
 cd app
@@ -165,9 +300,7 @@ cd app
 
 ---
 
-## 🔹 Passo 7: Instalar Dependências
-
-Execute:
+### 3. Instalar dependências
 
 ```bash
 flutter pub get
@@ -175,149 +308,162 @@ flutter pub get
 
 ---
 
-## 🔹 Passo 8: Executar o Projeto
+### 4. Rodar aplicação
 
-### Execução padrão
-
-```bash
-flutter run -d web-server
-```
-
-### Execução recomendada (Persistência estável)
-
-Para manter os dados persistidos corretamente no navegador, recomenda-se utilizar **porta fixa**:
+### Web
 
 ```bash
 flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080
 ```
 
----
-
-## 🔹 Passo 9: Abrir o Sistema
-
-Após executar, vá até a aba:
-
-```txt
-Ports
-```
-
-Procure a porta utilizada:
-
-```txt
-8080
-```
-
-Clique com o botão direito:
-
-```txt
-Open in Browser
-```
-
-ou:
-
-```txt
-Abrir no navegador
-```
-
----
-
-# 💾 Persistência dos Dados (Importante)
-
-O aplicativo utiliza **SQLite local no navegador (Flutter Web)**.
-
-Isso significa:
-
-### ✅ Os dados permanecem salvos quando:
-
-* O usuário faz logout;
-* A página é recarregada;
-* O app é executado novamente utilizando a **mesma URL/porta**.
-
-### ⚠️ Os dados podem ser perdidos quando:
-
-* O Codespace gera uma nova porta dinâmica;
-* O aplicativo é executado em outra origem/URL;
-* O navegador limpa armazenamento local.
-
-Por isso, recomenda-se utilizar:
+### Android
 
 ```bash
-flutter run -d web-server --web-port 8080
-```
-
-para manter consistência nos testes.
-
----
-
-# 📱 Fluxo esperado do aplicativo
-
-Após rodar o projeto, o usuário poderá:
-
-### 1. Criar conta
-
-Cadastrar:
-
-* Nome
-* E-mail
-* Senha
-
-### 2. Realizar Login
-
-Acessar o sistema utilizando usuário previamente cadastrado.
-
-### 3. Gerenciar transações
-
-* Adicionar receitas
-* Adicionar despesas
-* Editar transações
-* Excluir transações
-
-### 4. Visualizar Dashboard
-
-Consultar:
-
-* Saldo atual
-* Receitas
-* Despesas
-* Transações recentes
-
-### 5. Visualizar Análise Financeira
-
-Consultar:
-
-* Distribuição de gastos por categoria
-* Percentuais financeiros
-* Resumo consolidado
-
----
-
-# 📂 Estrutura do Projeto
-
-```txt
-lib/
-│
-├── data/              → SQLite + DAO
-├── models/            → Estrutura dos dados
-├── utils/             → Configurações auxiliares
-├── viewmodels/        → Regras de negócio + Provider
-├── views/             → Interfaces do usuário
-├── widgets/           → Componentes reutilizáveis
-└── main.dart          → Inicialização da aplicação
+flutter run
 ```
 
 ---
 
-# 📌 Observações
+## 📦 Gerar APK Release
 
-* Projeto desenvolvido para fins acadêmicos.
-* Não utiliza backend externo.
-* Os dados são persistidos localmente via SQLite.
-* Arquitetura baseada em **MVVM**.
-* Interface baseada em **Material Design**.
-* Desenvolvido para execução no **GitHub Codespaces + Flutter Web**.
+```bash
+flutter build apk --release --no-tree-shake-icons
+```
+
+APK gerado em:
+
+```text
+build/app/outputs/flutter-apk/app-release.apk
+```
 
 ---
 
-# 👨‍💻 Desenvolvido com Flutter
+## 🔥 Diferenciais do Projeto
 
-Projeto acadêmico de **Controle Financeiro (Money Wise)** utilizando Flutter, SQLite, Provider e MVVM.
+* Arquitetura organizada (MVVM)
+* Persistência híbrida (SQLite + Firestore)
+* Offline-first
+* Sincronização automática
+* Multiusuário
+* Responsividade
+* Integração com APIs externas
+* Dashboard premium
+* Loading moderno (Shimmer)
+* Firebase Authentication
+* Splash Screen personalizada
+* APK Android funcional
+
+---
+
+# Melhorias futuras do Aplicativo (APP)
+
+## Melhorias Visuais e de Experiência do Usuário (UX/UI)
+
+* **Alterar o nome do aplicativo**, adequando a identidade visual e nomenclatura da solução.
+
+* **Adicionar imagem/ilustração na tela de login**, visando melhorar a experiência visual do usuário e reforçar a identidade do aplicativo.
+
+* **Implementar suporte aos modos claro e escuro (Light/Dark Mode)**, permitindo alternância dinâmica entre os temas para melhor experiência de uso e acessibilidade.
+
+* **Implementar personalização de tema do aplicativo**, possibilitando que o usuário altere a cor principal do sistema através das configurações.
+  Exemplo:
+
+  * Tema padrão: Azul;
+  * Possibilidade de escolha de outras cores pelo usuário (verde, roxo, vermelho, laranja, entre outras).
+
+---
+
+## Regras de Negócio e Funcionalidades
+
+### Tela de Configurações
+
+Adicionar uma **tela de configurações do usuário**, contendo funcionalidades para:
+
+* Edição de dados pessoais;
+* Atualização de dados cadastrais;
+* Alteração de senha;
+* Personalização de temas e aparência do aplicativo;
+* Configurações gerais de segurança e conta.
+
+### Encerramento Automático de Sessão
+
+Implementar **expiração automática da sessão após 5 minutos de inatividade do usuário**, visando aumentar a segurança do aplicativo e proteger informações sensíveis.
+
+### Login Inteligente e Persistência de Sessão
+
+Após o encerramento da sessão:
+
+* Armazenar credenciais de autenticação de forma segura em cache/local storage;
+* Permitir login rápido com poucos cliques, sem necessidade de redigitar e-mail e senha;
+* Implementar suporte à autenticação biométrica:
+
+  * Impressão digital (Fingerprint);
+  * Reconhecimento facial (Face ID), quando suportado pelo dispositivo.
+
+### Alternância entre Contas
+
+Adicionar funcionalidade de **troca de contas (Multiaccount)**, disponível:
+
+**Na tela de login:**
+
+* Seleção rápida de contas já autenticadas/salvas no dispositivo.
+
+**Na Dashboard:**
+
+* Opção de:
+
+  * Encerrar sessão (Logout);
+  * Retornar para a tela de login;
+  * Alternar entre contas cadastradas sem necessidade de novo login manual.
+
+### Versionamento do Aplicativo
+
+Definir e padronizar o **controle de versionamento do aplicativo**, seguindo convenção incremental.
+
+Exemplo:
+
+* v1.1.2
+* v1.1.3
+* v1.2.0
+
+Seguindo critérios de:
+
+* Correções de bugs (Patch);
+* Melhorias e novas funcionalidades (Minor);
+* Grandes alterações estruturais (Major).
+
+### Cadastro de Lembretes Financeiros
+
+Adicionar funcionalidade de **cadastro e gerenciamento de lembretes financeiros**, contemplando:
+
+#### Contas a Pagar
+
+* Lembrete para pagamento de boletos;
+* Avisos de vencimento de dívidas;
+* Programação de pagamentos futuros.
+
+#### Contas a Receber
+
+* Lembretes para cobrança de valores pendentes;
+* Alertas de recebimentos futuros;
+* Controle de pagamentos aguardando confirmação.
+
+#### Notificações
+
+* Envio de notificações automáticas no dispositivo;
+* Alertas prévios antes da data de vencimento;
+* Configuração de frequência e antecedência dos lembretes.
+
+---
+
+## 👨‍💻 Desenvolvedor
+
+**José Henrique Dias Moreira**
+
+Projeto acadêmico desenvolvido para a disciplina de **Desenvolvimento Mobile**.
+
+---
+
+## 📄 Licença
+
+Projeto desenvolvido exclusivamente para fins acadêmicos.
